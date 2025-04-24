@@ -1,10 +1,18 @@
-import openai
+from openai import OpenAI
+from dotenv import load_dotenv
+import os
+import json
 
-def call_llm(prompt: str, model: str = "gpt-4") -> str:
-    response = openai.ChatCompletion.create(
+load_dotenv()
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+
+def call_llm(prompt: str, model: str = "gpt-4o-mini") -> str:
+    response = client.chat.completions.create(
         model=model,
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,
-        max_tokens=1000
+        temperature=0.5,
+        max_tokens=2048,
     )
-    return response.choices[0].message["content"]
+    return json.loads(response.choices[0].message.content)
