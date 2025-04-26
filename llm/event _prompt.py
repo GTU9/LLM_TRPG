@@ -12,7 +12,7 @@ def build_event_prompt_before(play_log):
 5. ```json ``` 텍스트는 삭제
 9. 해당 이벤트를 평문으로 log['exp']:value에 저장
 
-JSON 형식으로 다음과 같이 반환하라:
+반드시 JSON 형식으로 다음과 같이 반환하라:
 {{
 "event": {{
     "name": "...",
@@ -40,12 +40,12 @@ def build_event_prompt_after(event_log, player_act, roll):
 3. 전투 이벤트가 아니고 단순하게 처해진 상황에 플레이어가 행동을 함으로서 플레이어의 스탯에 영향을 준다
 4. 행동으로 인해 발생한 결과를 자세하게 설명한다.
 5. 플레이어의 주 능력치로는 hp(체력) ,wp(정신력) ,str_(힘) ,dex_(민첩), int_(지능), char_(화술) 이 존재하면, 해당 능력치를 결과에 따라 증가시키거나 하락시킨다. 변화가 있는 것만 명시
-6. hp와 wp의 최대 증감치는 10 , str_, dex_, int_, char_의 최대 증감치는 2이다.
+6. hp와 wp의 최대 증감치는 -10~+20 이고 , str_, dex_, int_, char_의 최대 증감치는 2이다.
 5. ```json ``` 텍스트는 삭제
 9. 해당 이벤트를 평문으로 log['exp']:value에 저장
      + log['exp']:value 생성 예시) 
 
-JSON 형식으로 다음과 같이 반환하라:
+반드시 JSON 형식으로 다음과 같이 반환하라:
 {{
 "event": {{
     "name": "...",

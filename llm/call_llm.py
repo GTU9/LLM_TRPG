@@ -15,4 +15,5 @@ def call_llm(prompt: str, model: str = "gpt-4o-mini") -> str:
         temperature=0.5,
         max_tokens=2048,
     )
+    # print(response.choices[0].message.content)
     return json.loads(response.choices[0].message.content)
