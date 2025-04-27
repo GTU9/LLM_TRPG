@@ -26,23 +26,22 @@ class Player:           # 플레이어 state
         # self.inventory = inventory # 플레이어 인벤토리
     
     def get_stats(self):  # 플레이어 능력치 반환
-        stats = {
-            '이름': self.name,
-            '직업': self.role,
-            '체력': self.hp,
-            '정신력': self.wp,
-            '힘': self.str_,
-            '민첩': self.dex_,
-            '지능': self.int_,
-            '화술': self.cha_
-        }
-        return stats
+        return f"""
+            '이름': {self.name}
+            '직업': {self.role}
+            '체력': {self.hp}
+            '정신력': {self.wp}
+            '힘': {self.str_}
+            '민첩': {self.dex_}
+            '지능': {self.int_}
+            '화술': {self.cha_}
+        """
     
     # 임의 플레이어 능력치 증감
     def update_stat(self, stat_name, value):  
         if stat_name == "hp":
             self.hp += value
-        elif stat_name == "wp_":
+        elif stat_name == "wp":
             self.wp += value
         elif stat_name == "str_":
             self.str_ += value
@@ -127,14 +126,14 @@ class Player:           # 플레이어 state
         if roll <= acc:
             if type == 'hp':
                 self.hp = max(0, self.hp - dmg)
-                log+= f"공격이 명중했습니다. {self.name}의 체력이 {dmg}만큼 감소했습니다. 플레이어 현재 체력: {self.hp}\n"
+                log+= f"공격이 명중했습니다. {self.name}의 체력이 {dmg}만큼 감소했습니다. 플레이어 현재 체력: {self.hp}"
             elif type == 'wp':
                 self.wp = max(0, self.wp - dmg)
-                log += f"공격이 명중했습니다. {self.name}의 정신력이 {dmg}만큼 감소했습니다. 플레이어 현재 정신력: {self.wp}\n"
+                log += f"공격이 명중했습니다. {self.name}의 정신력이 {dmg}만큼 감소했습니다. 플레이어 현재 정신력: {self.wp}"
             else:
                 return False # 잘못된 타입
         else:
-            log += "공격이 빗나갔습니다.\n" # 빗나감
+            log += "공격이 빗나갔습니다." # 빗나감
   
         return log
             
@@ -144,5 +143,5 @@ class Player:           # 플레이어 state
         elif self.wp <= 0:
             state, log = True, f"{self.name}이(가) wp가 0 이되어 쓰러졌습니다."
         else: 
-            state, log =False, f"{self.name}이(가) 살아있습니다."
+            state, log =False, "\n"
         return state, log

@@ -21,15 +21,15 @@ class Enemy:
     
     # 적 상태 출력
     def get_stats(self):
-        stats = {
-            "이름": self.name,
-            "종류": self.species,
-            "체력": self.hp,
-            "공격력": self.atk,
-            "설명": self.description,
-            "특수 행동": self.special_patterns,
-        }
-        return stats
+        special_action_names = [pattern['name'] for pattern in self.special_patterns]
+        return f"""
+            "이름": {self.name}
+            "종류": {self.species}
+            "체력": {self.hp}
+            "공격력": {self.atk}
+            "설명": {self.description}
+            "특수 행동": {special_action_names}
+        """
 
     # 임의 적 능력치 증감
     def update_stat(self, stat_name, value):
@@ -78,5 +78,5 @@ class Enemy:
         if self.hp <= 0:
             state, log = True, f"{self.name}이(가) 쓰러졌습니다.\n"
         else:
-            state, log = False, f"{self.name}이(가) 쓰러졌습니다.\n"
+            state, log = False, "\n"
         return state, log
