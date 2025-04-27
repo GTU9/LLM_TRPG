@@ -8,36 +8,43 @@ def combat(player,enemy):
     final_log = ""
     turn = 0
 
-    play_log += f'{player.name}이(가) {enemy.name}과(와) 만났습니다.' 
-    play_log +=f'{player.name}이(가) {enemy.name}과(와) 전투를 시작합니다.'
     play_log += show_state(player,enemy)
-    print('Systenm : '+call_llm(start_combat_prompt(play_log))['explain'])
-    print(f'{player.name}이(가) {enemy.name}과(와) 만났습니다.')
-    print(f'{player.name}이(가) {enemy.name}과(와) 전투를 시작합니다.\n')
+    print(call_llm(start_combat_prompt(play_log))['explain'])
+    play_log+=print_and_log(f'{player.name}이(가) {enemy.name}과(와) 만났습니다.\n')
+    print("\n===== 적의 능력치 =====")
+    play_log += print_and_log(enemy.get_stats())
+    print("===========================\n")
+    play_log+=print_and_log(f'{player.name}이(가) {enemy.name}과(와) 전투를 시작합니다.\n')
 
     while True:
         turn += 1
+        print("=========================================\n")
         final_log +=print_and_log(f"{turn}번째 턴을 시작합니다.\n")
-
+        print("=========================================\n")
         player_log = ""
         player_log += print_and_log(f"{player.name}의 턴\n")
+        print("=========================================\n")
         player_log +=print_and_log(player_combat(player,enemy))
         player_log+=show_state(player,enemy)+'\n'
         print(build_combat(player_log)['explain']+'\n')
-
+        print("=========================================\n")
         enemy_dead, log = enemy.is_dead()
         if enemy_dead:
             enemy_log+=log
             print(build_combat(enemy_log)['explain']+'\n')
             final_log+=print_and_log("전투에서 승리했습니다.")
+            print("=========================================\n")
             break
         
         final_log += player_log
 
         enemy_log = ""
         enemy_log += print_and_log(f"{enemy.name}턴\n")
+        print("=========================================\n")
         enemy_log += print_and_log(enemy_combat(player,enemy))
+        print("=========================================\n")
         enemy_log += show_state(player,enemy)+'\n'
+        print("=========================================\n")
         print(build_combat(enemy_log)['explain']+'\n')
 
         player_dead, log = player.is_dead()
@@ -45,12 +52,16 @@ def combat(player,enemy):
             player_log+=log
             print(build_combat(player_log)['explain']+'\n')
             final_log+=print_and_log("전투에서 패배했습니다.")
+            print("=========================================\n")
             break
 
         final_log += enemy_log
     final_log+=play_log
+
+    print("\n===== 플레이어의 능력치 =====")
+    final_log += print_and_log(player.get_stats())
+    print("===========================\n")
     
-    print(final_log)
     return final_log
         
         
@@ -72,7 +83,7 @@ def player_combat(player, enemy):
 
     user_input=input('플레이어의 행동을 입력하세요: ')
     action = call_llm(attack_kind(user_input))
-    print('주 사위를 굴립니다...........')
+    print('주사위를 굴립니다...........')
     # 플레이어 공격
     if action['action']['type'] == "attack":
         log += f'{player.name}이(가) {enemy.name}을(를) 공격합니다.\n'
@@ -92,10 +103,10 @@ def enemy_combat(player, enemy):
     log =""
     log += f"{enemy.name}이(가) 행동합니다."+"\n"
     pattern = random.choice(enemy.special_patterns)
-    print('주 사위를 굴립니다...........')
-
+    
     # 적 공격
     if pattern['type']['kind'] == "attack":
+        print('주사위를 굴립니다...........')
         log += f'{enemy.name}이(가) {player.name}을(를) 공격합니다.\n'
         attack_info = enemy.attack(pattern)
         # 플레이어에게 피해 적용

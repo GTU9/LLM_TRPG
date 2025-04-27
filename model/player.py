@@ -11,7 +11,7 @@ class Player:           # 플레이어 state
                  str_   # 플레이어 힘
                  ,dex_  # 플레이어 민첩성
                  ,int_  # 플레이어 지능
-                 ,cha_  # 플레이어 화술
+                 ,char_  # 플레이어 화술
                 #  ,inventory: dict # 플레이어 인벤토리, 아이템 이름과 설명으로 이루어진 딕셔너리 목록                 
                  ): 
         self.name = name
@@ -22,19 +22,20 @@ class Player:           # 플레이어 state
         self.str_ = str_
         self.dex_ = dex_
         self.int_ = int_
-        self.cha_ = cha_
+        self.char_ = char_
         # self.inventory = inventory # 플레이어 인벤토리
     
     def get_stats(self):  # 플레이어 능력치 반환
         return f"""
             '이름': {self.name}
+            '설명': {self.explain}
             '직업': {self.role}
             '체력': {self.hp}
             '정신력': {self.wp}
             '힘': {self.str_}
             '민첩': {self.dex_}
             '지능': {self.int_}
-            '화술': {self.cha_}
+            '화술': {self.char_}
         """
     
     # 임의 플레이어 능력치 증감
@@ -49,8 +50,8 @@ class Player:           # 플레이어 state
             self.dex_ += value
         elif stat_name == "int_":
             self.int_ += value
-        elif stat_name == "cha_":
-            self.cha_ += value
+        elif stat_name == "char_":
+            self.char_ += value
         else:
             print(f"'{stat_name}' 은(는) 존재하지 않는 능력치입니다.")
 
@@ -61,7 +62,7 @@ class Player:           # 플레이어 state
             'str_': self.str_,
             'dex_': self.dex_,
             'int_': self.int_,
-            'cha_': self.cha_
+            'char_': self.char_
         }
         return stat_map.get(type, 0)
     
@@ -73,8 +74,8 @@ class Player:           # 플레이어 state
             return self.dex_-2  
         elif type == 'int_':
             return self.int_-2
-        elif type == 'cha_':
-            return self.cha_-2
+        elif type == 'char_':
+            return self.char_-2
         else:
             return 0
         

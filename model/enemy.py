@@ -69,7 +69,7 @@ class Enemy:
         log += f"{self.name}이(가) {dmg}의 공격을 받습니다. 주사위 값 {roll_result}! 공격력 {dmg} 명중률 {acc}%\n"
         if roll <= acc:
             self.hp = max(0, self.hp - dmg)
-            log += f"공격이 명중했습니다. {self.name}의 체력이 {dmg}만큼 감소했습니다."
+            log += f"공격이 명중했습니다. {self.name}의 체력이 {dmg}만큼 감소했습니다. \n현재 적 체력 : {self.hp}"
         else:
             log += "공격이 빗나갔습니다."
         return log
