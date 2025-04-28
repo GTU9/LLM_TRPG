@@ -9,7 +9,7 @@ def combat(player, enemy):
     turn = 0
 
     play_log += show_state(player, enemy)
-    print(call_llama3(start_combat_prompt(play_log))["explain"])
+    print(call_llm(start_combat_prompt(play_log))["explain"])
     play_log += print_and_log(f"{player.name}이(가) {enemy.name}과(와) 만났습니다.\n")
     print("\n===== 적의 능력치 =====")
     play_log += print_and_log(enemy.get_stats())
@@ -85,7 +85,7 @@ def player_combat(player, enemy):
     log += f"{player.name}이(가) 행동합니다." + "\n"
 
     user_input = input("플레이어의 행동을 입력하세요: ")
-    action = call_llama3(attack_kind(user_input))
+    action = call_llm(attack_kind(user_input))
     print("주사위를 굴립니다...........")
     # 플레이어 공격
     if action["action"]["type"] == "attack":
@@ -145,5 +145,5 @@ def enemy_combat(player, enemy):
 
 
 def build_combat(play_log):
-    combat_log = call_llama3(build_combat_prompt(play_log))
+    combat_log = call_llm(build_combat_prompt(play_log))
     return combat_log
