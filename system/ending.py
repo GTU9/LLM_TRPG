@@ -13,4 +13,4 @@ def ending(play_log):
     print(end["ending"]["summary"])
 
     end_log = ""
-    end_log += f"{end['ending']['title']}\n{end['ending']['summary']}"
+    end_log += end["ending"]["title"] + "/n" + end["ending"]["summary"]
