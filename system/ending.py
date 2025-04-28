@@ -3,7 +3,7 @@ from llm.call_llm import call_llm, call_llama3
 
 
 def ending(play_log):
-    end = call_llama3(build_ending_prompt(play_log))
+    end = call_llm(build_ending_prompt(play_log))
 
     print("[엔딩 제목]")
     print("=================================")

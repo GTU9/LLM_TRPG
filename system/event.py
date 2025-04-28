@@ -24,7 +24,7 @@ def print_and_log(log):
 def event_before(play_log):
     event_log = ""
 
-    event_before = call_llama3(build_event_prompt_before(play_log))
+    event_before = call_llm(build_event_prompt_before(play_log))
     event_log += print_and_log(event_before["event"]["explain"])
 
     return event_log
@@ -41,7 +41,7 @@ def event_after(player, event_before_log):
     event_log += print_and_log(f"주사위를 굴립니다.....\n")
     event_log += print_and_log(f"주사위 결과는 {roll_result}입니다.\n")
 
-    event_result = call_llama3(
+    event_result = call_llm(
         build_event_prompt_after(event_before_log, player_act, roll_result)
     )
     event_log += print_and_log(event_result["event"]["explain"] + "\n")
