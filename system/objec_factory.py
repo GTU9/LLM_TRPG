@@ -9,7 +9,7 @@ from model.enemy import Enemy
 
 def start_game(user_input, user_input_character):
     prompt = build_intro_prompt(user_input, user_input_character)
-    data = call_llm(prompt)
+    data = call_llama3(prompt)
 
     background = data["background"]
     player = Player(**data["player"])

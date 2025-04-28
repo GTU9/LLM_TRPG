@@ -4,6 +4,7 @@ from system.event import event
 from system.combat import combat
 from system.ending import ending
 from system.save_log import save_log
+import time
 
 
 def main():
@@ -39,7 +40,9 @@ def main():
             print("게임 오버!\n")
             break
 
-        if random.random() < 0.8:
+        time.sleep(4)
+
+        if random.random() < 1.0:
             print("\n===== 적이 등장했습니다! =====")
             enemy = create_enemy(play_log)
             play_log += combat(player, enemy)
@@ -50,7 +53,7 @@ def main():
                 print("게임 오버!\n")
                 break
 
-        if time >= 2:
+        if time >= 1:
             break
 
     play_log += ending(play_log)

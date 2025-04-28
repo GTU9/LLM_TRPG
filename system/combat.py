@@ -1,4 +1,4 @@
-import random
+import random, time
 from llm.call_llm import call_llm, call_llama3
 from llm.combat_prompt import attack_kind, build_combat_prompt, start_combat_prompt
 
@@ -39,6 +39,8 @@ def combat(player, enemy):
             break
 
         final_log += player_log
+
+        time.sleep(5)
 
         enemy_log = ""
         enemy_log += print_and_log(f"{enemy.name}턴\n")
