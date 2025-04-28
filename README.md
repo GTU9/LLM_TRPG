@@ -43,7 +43,7 @@
 - 사용자 인터페이스 : CLI 환경
 - 개발 언어 : <img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=Python&logoColor=white"/>
 - 개발 IDE : VSCode 
-- 사용 API : OpenAI API
+- 사용 API : OpenAI API, ollama
 
 ## 📚 파일 계층 구조
 * 프로젝트의 확장성을 높이기 위한 모듈화
