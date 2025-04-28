@@ -22,14 +22,14 @@ def main():
     print(player.get_stats())
     print("===========================\n")
 
-    play_log =''
+    play_log = ""
 
-    play_log +=f'세계관 : {background}\n 플레이어 정보: {player.get_stats()}'
+    play_log += f"세계관 : {background}\n 플레이어 정보: {player.get_stats()}"
 
-    time=0
+    time = 0
 
     while True:
-        time+=1
+        time += 1
         print("\n===== 이벤트 발생 =====")
         play_log += event(player, play_log)
 
@@ -40,23 +40,23 @@ def main():
             break
         save_log(play_log)
 
-        if random.random() < 0.8:
+        if random.random() < 1.0:
             print("\n===== 적이 등장했습니다! =====")
             enemy = create_enemy(play_log)
             play_log += combat(player, enemy)
 
-            # 전투 후 플레이어 사망 체크
             dead, dead_log = player.is_dead()
             if dead:
                 print(dead_log)
                 print("게임 오버!\n")
                 break
         save_log(play_log)
-    
-        if time>=3:
+
+        if time >= 1:
             break
 
     ending(play_log)
     save_log(play_log)
+
 
 main()
