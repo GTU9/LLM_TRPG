@@ -39,7 +39,7 @@ def main():
             print("게임 오버!\n")
             break
 
-        if random.random() < 1.0:
+        if random.random() < 0.8:
             print("\n===== 적이 등장했습니다! =====")
             enemy = create_enemy(play_log)
             play_log += combat(player, enemy)
@@ -50,10 +50,10 @@ def main():
                 print("게임 오버!\n")
                 break
 
-        if time >= 1:
+        if time >= 2:
             break
 
-    ending(play_log)
+    play_log += ending(play_log)
     save_log(play_log)
 
 
