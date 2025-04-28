@@ -27,10 +27,10 @@ def main():
 
     play_log += f"세계관 : {background}\n 플레이어 정보: {player.get_stats()}"
 
-    time = 0
+    timing = 0
 
     while True:
-        time += 1
+        timing += 1
         print("\n===== 이벤트 발생 =====")
         play_log += event(player, play_log)
 
@@ -40,7 +40,7 @@ def main():
             print("게임 오버!\n")
             break
 
-        time.sleep(4)
+        time.sleep(5)
 
         if random.random() < 1.0:
             print("\n===== 적이 등장했습니다! =====")
@@ -53,7 +53,7 @@ def main():
                 print("게임 오버!\n")
                 break
 
-        if time >= 1:
+        if timing >= 1:
             break
 
     play_log += ending(play_log)
