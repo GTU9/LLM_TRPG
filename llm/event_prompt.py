@@ -20,7 +20,7 @@ def build_event_prompt_before(play_log):
     "name": "...",
     "explain": "...",
   }}
-"log: {{
+"log": {{
     "type":"event_before",
     "exp":"..."
     }}
@@ -60,7 +60,7 @@ def build_event_prompt_after(event_log, player_act, roll):
     "type":{{"str_":-1,
             "...":"..."}}
   }}
-  "log: {{
+  "log": {{
     "type":"event_after",
     "exp":"..."
     }}

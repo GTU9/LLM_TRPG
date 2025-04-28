@@ -38,7 +38,6 @@ def main():
             print(dead_log)
             print("게임 오버!\n")
             break
-        save_log(play_log)
 
         if random.random() < 1.0:
             print("\n===== 적이 등장했습니다! =====")
@@ -50,7 +49,6 @@ def main():
                 print(dead_log)
                 print("게임 오버!\n")
                 break
-        save_log(play_log)
 
         if time >= 1:
             break
