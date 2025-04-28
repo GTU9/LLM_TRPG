@@ -30,7 +30,7 @@ import re
 
 
 # ollama
-def call_llama3(prompt: str, model: str = "llama3") -> dict:
+def call_llama3(prompt: str, model: str = "EEVE-Korean-10.8B") -> dict:
     response = clientllama.chat(
         model=model,
         messages=[{"role": "user", "content": prompt}],
