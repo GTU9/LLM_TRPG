@@ -23,6 +23,8 @@ def combat(player, enemy):
         print("=========================================\n")
         final_log += print_and_log(f"{turn}번째 턴을 시작합니다.\n")
         print("=========================================\n")
+
+        # ── 플레이어 턴 ──────────────────────────────
         player_log = ""
         player_log += print_and_log(f"{player.name}의 턴\n")
         print("=========================================\n")
@@ -30,10 +32,14 @@ def combat(player, enemy):
         player_log += show_state(player, enemy) + "\n"
         print(build_combat(player_log)["explain"] + "\n")
         print("=========================================\n")
-        enemy_dead, log = enemy.is_dead()
+
+        # [BUG FIX] enemy_log를 먼저 초기화한 뒤 적 사망 체크
+        enemy_log = ""
+        enemy_dead, dead_log = enemy.is_dead()
         if enemy_dead:
-            enemy_log += log
-            print(build_combat(enemy_log)["explain"] + "\n")
+            enemy_log += dead_log
+            print(build_combat(player_log)["explain"] + "\n")
+            final_log += player_log
             final_log += print_and_log("전투에서 승리했습니다.")
             print("=========================================\n")
             break
@@ -42,7 +48,7 @@ def combat(player, enemy):
 
         time.sleep(5)
 
-        enemy_log = ""
+        # ── 적 턴 ────────────────────────────────────
         enemy_log += print_and_log(f"{enemy.name}턴\n")
         print("=========================================\n")
         enemy_log += print_and_log(enemy_combat(player, enemy))
@@ -51,15 +57,16 @@ def combat(player, enemy):
         print("=========================================\n")
         print(build_combat(enemy_log)["explain"] + "\n")
 
-        player_dead, log = player.is_dead()
+        player_dead, dead_log = player.is_dead()
         if player_dead:
-            player_log += log
+            player_log += dead_log
             print(build_combat(player_log)["explain"] + "\n")
             final_log += print_and_log("전투에서 패배했습니다.")
             print("=========================================\n")
             break
 
         final_log += enemy_log
+
     final_log += play_log
 
     print("\n===== 플레이어의 능력치 =====")

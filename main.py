@@ -24,10 +24,10 @@ def main():
     print("===========================\n")
 
     play_log = ""
-
     play_log += f"세계관 : {background}\n 플레이어 정보: {player.get_stats()}"
 
     timing = 0
+    MAX_TURNS = 5  # [BUG FIX] 1회 강제 종료 → 5턴으로 정상화 (원하는 값으로 조정)
 
     while True:
         timing += 1
@@ -42,7 +42,8 @@ def main():
 
         time.sleep(5)
 
-        if random.random() < 1.0:
+        # [BUG FIX] 1.0 → 0.6 (전투 발생 확률 60%로 정상화)
+        if random.random() < 0.6:
             print("\n===== 적이 등장했습니다! =====")
             enemy = create_enemy(play_log)
             play_log += combat(player, enemy)
@@ -53,7 +54,7 @@ def main():
                 print("게임 오버!\n")
                 break
 
-        if timing >= 1:
+        if timing >= MAX_TURNS:
             break
 
     play_log += ending(play_log)

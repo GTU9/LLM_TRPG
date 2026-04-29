@@ -13,4 +13,6 @@ def ending(play_log):
     print(end["ending"]["summary"])
 
     end_log = ""
-    end_log += end["ending"]["title"] + "/n" + end["ending"]["summary"]
+    # [BUG FIX] "/n" → "\n" 오타 수정, return 누락 수정
+    end_log += end["ending"]["title"] + "\n" + end["ending"]["summary"]
+    return end_log
