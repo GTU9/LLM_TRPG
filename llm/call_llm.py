@@ -16,12 +16,12 @@ def clean_json(text: str) -> str:
     return text
 
 
-def call_llm(prompt: str, model: str = "gpt-5.4-mini") -> dict:
+def call_llm(prompt: str, model: str = "gpt-4o-mini") -> dict:
     response = client.chat.completions.create(
         model=model,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.5,
-        max_completion_tokens=2048,
+        max_tokens=2048,
     )
     content = response.choices[0].message.content
     content = clean_json(content)
