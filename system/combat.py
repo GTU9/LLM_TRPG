@@ -1,5 +1,5 @@
 import random, time
-from llm.call_llm import call_llm, call_llama3
+from llm.call_llm import call_llm
 from llm.combat_prompt import attack_kind, build_combat_prompt, start_combat_prompt
 
 
@@ -33,7 +33,7 @@ def combat(player, enemy):
         print(build_combat(player_log)["explain"] + "\n")
         print("=========================================\n")
 
-        # [BUG FIX] enemy_log를 먼저 초기화한 뒤 적 사망 체크
+        # enemy_log 먼저 초기화한 뒤 적 사망 체크
         enemy_log = ""
         enemy_dead, dead_log = enemy.is_dead()
         if enemy_dead:

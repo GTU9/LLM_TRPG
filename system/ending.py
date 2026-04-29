@@ -1,5 +1,5 @@
 from llm.ending_prompt import build_ending_prompt
-from llm.call_llm import call_llm, call_llama3
+from llm.call_llm import call_llm
 
 
 def ending(play_log):
@@ -13,6 +13,5 @@ def ending(play_log):
     print(end["ending"]["summary"])
 
     end_log = ""
-    # [BUG FIX] "/n" → "\n" 오타 수정, return 누락 수정
     end_log += end["ending"]["title"] + "\n" + end["ending"]["summary"]
     return end_log

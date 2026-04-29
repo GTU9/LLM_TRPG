@@ -1,4 +1,4 @@
-from llm.call_llm import call_llm, call_llama3
+from llm.call_llm import call_llm
 from llm.event_prompt import build_event_prompt_before, build_event_prompt_after
 from system.dice import roll_dice, get_outcome_label
 

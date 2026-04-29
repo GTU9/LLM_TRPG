@@ -1,8 +1,6 @@
 from llm.intro_prompt import build_intro_prompt
 from llm.enemy_prompt import build_enemy_prompt
-
-from llm.call_llm import call_llm, call_llama3
-
+from llm.call_llm import call_llm
 from model.player import Player
 from model.enemy import Enemy
 
