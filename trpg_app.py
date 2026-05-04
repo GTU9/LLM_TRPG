@@ -26,24 +26,10 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600&family=Noto+Sans+KR:wght@400;500&display=swap');
 .stApp { background-color: #1a1410; font-family: 'Noto Sans KR', sans-serif; }
 [data-testid="stHeader"] { display: none; }
-
-/* 메인 영역 */
 .main .block-container { padding: 0 !important; max-width: 800px !important; margin: 0 auto; }
-
-/* 사이드바 스타일 */
-[data-testid="stSidebar"] {
-    background: #120f0b !important;
-    border-right: 1px solid #3a2e22 !important;
-}
+[data-testid="stSidebar"] { background: #120f0b !important; border-right: 1px solid #3a2e22 !important; }
 [data-testid="stSidebar"] > div { padding: 0 !important; }
-
-/* 사이드바 내부 커스텀 */
-.sb-title {
-    font-family: 'Noto Serif KR', serif;
-    font-size: 14px; font-weight: 600; color: #c9a84c;
-    padding: 16px 16px 10px; border-bottom: 1px solid #3a2e22;
-    display: flex; align-items: center; gap: 6px;
-}
+.sb-title { font-family: 'Noto Serif KR', serif; font-size: 14px; font-weight: 600; color: #c9a84c; padding: 16px 16px 10px; border-bottom: 1px solid #3a2e22; display: flex; align-items: center; gap: 6px; }
 .sb-gem { width: 7px; height: 7px; border-radius: 50%; background: #c9a84c; display: inline-block; }
 .sb-section { padding: 12px 16px; border-bottom: 1px solid #2a2018; }
 .sb-section-title { font-size: 10px; color: #5a4e38; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
@@ -51,7 +37,7 @@ st.markdown("""
 .sb-stat-label { font-size: 12px; color: #8a7a60; }
 .sb-stat-val { font-size: 13px; font-weight: 500; color: #e8d5a3; }
 .sb-bar-wrap { width: 100%; height: 5px; background: #2a2018; border-radius: 3px; overflow: hidden; margin-top: 3px; margin-bottom: 8px; }
-.sb-bar-inner { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.sb-bar-inner { height: 100%; border-radius: 3px; }
 .sb-ability-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .sb-ability-item { background: #1e1a12; border: 1px solid #3a2e22; border-radius: 6px; padding: 6px 10px; }
 .sb-ability-name { font-size: 10px; color: #5a4e38; }
@@ -63,8 +49,6 @@ st.markdown("""
 .sb-turn-num { font-size: 28px; font-weight: 600; color: #c9a84c; line-height: 1; }
 .sb-turn-label { font-size: 10px; color: #5a4e38; margin-top: 2px; }
 .sb-phase-badge { background: #2a2018; border: 1px solid #3a2e22; border-radius: 6px; padding: 6px 10px; font-size: 11px; color: #8a7a60; text-align: center; margin-top: 8px; }
-
-/* 헤더 */
 .trpg-header { background: #120f0b; border-bottom: 1px solid #3a2e22; padding: 10px 20px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; }
 .trpg-title { font-family: 'Noto Serif KR', serif; font-size: 15px; font-weight: 600; color: #c9a84c; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px; }
 .trpg-gem { width: 7px; height: 7px; border-radius: 50%; background: #c9a84c; display: inline-block; }
@@ -75,9 +59,8 @@ st.markdown("""
 .stat-bar-inner { height: 100%; border-radius: 2px; }
 .turn-badge { font-size: 11px; color: #8a7a60; }
 .turn-badge span { color: #e8d5a3; font-weight: 500; }
-
-/* 말풍선 */
 .gm-bubble { background: #211c14; border: 1px solid #3a2e22; border-radius: 12px; border-top-left-radius: 2px; padding: 12px 16px; color: #d4c4a0; font-family: 'Noto Serif KR', serif; font-size: 14px; line-height: 1.8; }
+.enemy-bubble { background: #1e1010; border: 1px solid #6a2020; border-radius: 12px; border-top-left-radius: 2px; padding: 12px 16px; color: #d4a0a0; font-family: 'Noto Serif KR', serif; font-size: 14px; line-height: 1.8; }
 .player-bubble { background: #1a2535; border: 1px solid #2a3a4a; border-radius: 12px; border-top-right-radius: 2px; padding: 10px 14px; color: #a8c8e0; font-size: 13px; line-height: 1.7; }
 .system-msg { background: #1a1a10; border: 1px solid #2a2a18; border-radius: 6px; padding: 8px 14px; color: #8a8a60; font-size: 12px; font-style: italic; text-align: center; margin: 6px 0; }
 .combat-banner { background: #2a1010; border: 1px solid #6a2020; border-radius: 8px; padding: 10px 16px; color: #d4a0a0; font-family: 'Noto Serif KR', serif; font-size: 13px; text-align: center; margin: 6px 0; }
@@ -117,6 +100,7 @@ def init_session():
         "event_explain": "",
         "combat_turn": 0,
         "pending_combat": False,
+        "last_player_combat_log": "",
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -138,11 +122,13 @@ def get_phase_label():
     t = st.session_state.timing
     m = st.session_state.MAX_TURNS
     labels = {
-        "init":         "세계관과 캐릭터를 설정하세요",
-        "event_before": f"이벤트 [{t}/{m}턴] — 행동을 입력하세요",
-        "event_after":  f"이벤트 [{t}/{m}턴] — 계속하려면 입력하세요",
-        "combat":       f"전투 중 [{t}/{m}턴] — 전투 행동을 입력하세요",
-        "ending":       "여정이 끝났습니다",
+        "init":          "세계관과 캐릭터를 설정하세요",
+        "intro":         "세계관과 캐릭터를 확인하세요 — 모험을 시작하려면 입력하세요",
+        "event_before":  f"이벤트 [{t}/{m}턴] — 행동을 입력하세요",
+        "event_after":   f"이벤트 [{t}/{m}턴] — 다음 행선지나 행동 방향을 입력하세요",
+        "combat_player": f"전투 [{t}/{m}턴] — 나의 턴 — 행동을 입력하세요",
+        "combat_enemy":  f"전투 [{t}/{m}턴] — 적의 턴 — 계속하려면 입력하세요",
+        "ending":        "여정이 끝났습니다",
     }
     return labels.get(p, "")
 
@@ -219,20 +205,18 @@ def _do_ending():
 def render_sidebar():
     p = st.session_state.player
     e = st.session_state.enemy
-
     with st.sidebar:
         st.markdown('<div class="sb-title"><span class="sb-gem"></span> 캐릭터 상태</div>', unsafe_allow_html=True)
-
         if p is None:
             st.markdown('<div style="padding:16px;color:#5a4e38;font-size:12px;">게임 시작 후 표시됩니다.</div>', unsafe_allow_html=True)
             return
 
-        # 턴 + 페이즈
         t = st.session_state.timing
         m = st.session_state.MAX_TURNS
         phase_map = {
-            "init": "준비", "event_before": "이벤트",
-            "event_after": "이벤트", "combat": "⚔ 전투", "ending": "엔딩"
+            "init": "준비", "intro": "준비",
+            "event_before": "이벤트", "event_after": "이동 중",
+            "combat_player": "⚔ 나의 턴", "combat_enemy": "⚔ 적의 턴", "ending": "엔딩"
         }
         phase_ko = phase_map.get(st.session_state.phase, "")
 
@@ -246,67 +230,44 @@ def render_sidebar():
         </div>
         """, unsafe_allow_html=True)
 
-        # 체력 / 정신력 바
-        hp_pct = int(p.hp / 100 * 100)
-        wp_pct = int(p.wp / 100 * 100)
-        hp_color = "#c0392b" if p.hp <= 20 else "#e67e22" if p.hp <= 40 else "#c0392b"
+        hp_pct = int(p.hp)
+        wp_pct = int(p.wp)
         st.markdown(f"""
         <div class="sb-section">
             <div class="sb-section-title">생존 수치</div>
-            <div class="sb-stat-row">
-                <span class="sb-stat-label">❤ 체력</span>
-                <span class="sb-stat-val">{p.hp}</span>
-            </div>
+            <div class="sb-stat-row"><span class="sb-stat-label">❤ 체력</span><span class="sb-stat-val">{p.hp}</span></div>
             <div class="sb-bar-wrap"><div class="sb-bar-inner" style="width:{hp_pct}%;background:#c0392b;"></div></div>
-            <div class="sb-stat-row">
-                <span class="sb-stat-label">💙 정신력</span>
-                <span class="sb-stat-val">{p.wp}</span>
-            </div>
+            <div class="sb-stat-row"><span class="sb-stat-label">💙 정신력</span><span class="sb-stat-val">{p.wp}</span></div>
             <div class="sb-bar-wrap"><div class="sb-bar-inner" style="width:{wp_pct}%;background:#2980b9;"></div></div>
         </div>
         """, unsafe_allow_html=True)
 
-        # 능력치 그리드
         st.markdown(f"""
         <div class="sb-section">
             <div class="sb-section-title">능력치</div>
             <div class="sb-ability-grid">
-                <div class="sb-ability-item">
-                    <div class="sb-ability-name">힘</div>
-                    <div class="sb-ability-val">{p.str_}</div>
-                </div>
-                <div class="sb-ability-item">
-                    <div class="sb-ability-name">민첩</div>
-                    <div class="sb-ability-val">{p.dex_}</div>
-                </div>
-                <div class="sb-ability-item">
-                    <div class="sb-ability-name">지능</div>
-                    <div class="sb-ability-val">{p.int_}</div>
-                </div>
-                <div class="sb-ability-item">
-                    <div class="sb-ability-name">화술</div>
-                    <div class="sb-ability-val">{p.char_}</div>
-                </div>
+                <div class="sb-ability-item"><div class="sb-ability-name">힘</div><div class="sb-ability-val">{p.str_}</div></div>
+                <div class="sb-ability-item"><div class="sb-ability-name">민첩</div><div class="sb-ability-val">{p.dex_}</div></div>
+                <div class="sb-ability-item"><div class="sb-ability-name">지능</div><div class="sb-ability-val">{p.int_}</div></div>
+                <div class="sb-ability-item"><div class="sb-ability-name">화술</div><div class="sb-ability-val">{p.char_}</div></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # 전투 중일 때 적 상태
         if e is not None:
-            en_pct = int(e.hp / 30 * 100)
+            en_pct = min(int(e.hp / 30 * 100), 100)
             st.markdown(f"""
             <div class="sb-section">
                 <div class="sb-section-title">교전 중인 적</div>
                 <div class="sb-enemy-box">
                     <div class="sb-enemy-name">⚔ {e.name}</div>
                     <div class="sb-enemy-hp-label">❤ 체력 {e.hp}</div>
-                    <div class="sb-bar-wrap"><div class="sb-bar-inner" style="width:{min(en_pct,100)}%;background:#8a2020;"></div></div>
+                    <div class="sb-bar-wrap"><div class="sb-bar-inner" style="width:{en_pct}%;background:#8a2020;"></div></div>
                     <div style="font-size:11px;color:#5a4e38;margin-top:4px;">공격력 {e.atk} | {e.species}</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
-        # 캐릭터 기본 정보
         st.markdown(f"""
         <div class="sb-section">
             <div class="sb-section-title">캐릭터 정보</div>
@@ -319,11 +280,10 @@ def render_sidebar():
 render_sidebar()
 
 
-# ── 상단 헤더 (간소화) ───────────────────────────────
+# ── 상단 헤더 ────────────────────────────────────────
 p = st.session_state.player
 hp_val = p.hp if p else 0
 wp_val = p.wp if p else 0
-
 hp_bar = render_bar(hp_val, 100, "#c0392b")
 wp_bar = render_bar(wp_val, 100, "#2980b9")
 
@@ -350,6 +310,9 @@ for msg in st.session_state.messages:
     elif msg["role"] == "gm":
         with st.chat_message("assistant", avatar="⚔"):
             st.markdown(f'<div class="gm-bubble">{msg["content"]}</div>', unsafe_allow_html=True)
+    elif msg["role"] == "enemy":
+        with st.chat_message("assistant", avatar="👹"):
+            st.markdown(f'<div class="enemy-bubble">{msg["content"]}</div>', unsafe_allow_html=True)
     elif msg["role"] == "player":
         with st.chat_message("user", avatar="🧙"):
             st.markdown(f'<div class="player-bubble">{msg["content"]}</div>', unsafe_allow_html=True)
@@ -364,12 +327,33 @@ if st.session_state.phase == "init":
         submitted = st.form_submit_button("모험 시작", use_container_width=True)
 
     if submitted and bg and ch:
-        with st.spinner("세계관을 생성하는 중..."):
+        with st.spinner("세계관과 캐릭터를 생성하는 중..."):
             background, player = start_game(bg, ch)
+
         st.session_state.player = player
         st.session_state.play_log = f"세계관: {background}\n플레이어 정보: {player.get_stats()}"
-        add_message("system", f"⚔ 세계관: {background}")
 
+        add_message("system", "⚔ 세계관이 생성되었습니다")
+        add_message("gm", background)
+        add_message("system", "캐릭터가 생성되었습니다")
+        char_desc = (
+            f"<b>{player.name}</b> — {player.role}<br><br>"
+            f"{player.explain}<br><br>"
+            f"❤ 체력 {player.hp} &nbsp;|&nbsp; 💙 정신력 {player.wp}<br>"
+            f"힘 {player.str_} &nbsp;|&nbsp; 민첩 {player.dex_} &nbsp;|&nbsp; 지능 {player.int_} &nbsp;|&nbsp; 화술 {player.char_}"
+        )
+        add_message("gm", char_desc)
+        st.session_state.phase = "intro"
+        st.rerun()
+
+
+# ── PHASE: intro ─────────────────────────────────────
+elif st.session_state.phase == "intro":
+    st.markdown(f'<div class="phase-label">{get_phase_label()}</div>', unsafe_allow_html=True)
+    user_input = st.chat_input("모험을 시작하려면 아무 말이나 입력하세요...")
+
+    if user_input:
+        add_message("player", user_input)
         with st.spinner("첫 번째 이벤트를 생성하는 중..."):
             event_data = call_llm(build_event_prompt_before(st.session_state.play_log))
         st.session_state.event_explain = event_data["event"]["explain"]
@@ -385,37 +369,26 @@ elif st.session_state.phase == "event_before":
 
     if user_input:
         add_message("player", user_input)
-        roll       = get_outcome_label(roll_dice())
-        roll_val   = roll["roll_result"]
-        roll_label = roll["label"]
+        roll = get_outcome_label(roll_dice())
+        roll_val, roll_label = roll["roll_result"], roll["label"]
 
         with st.spinner("결과를 처리하는 중..."):
-            event_result = call_llm(
-                build_event_prompt_after(st.session_state.event_explain, user_input, roll_label)
-            )
+            event_result = call_llm(build_event_prompt_after(st.session_state.event_explain, user_input, roll_label))
 
         explain      = event_result["event"]["explain"]
         stat_changes = event_result["event"].get("type", {})
         player       = st.session_state.player
 
-        stat_snapshot = {
-            "hp": player.hp, "wp": player.wp,
-            "str_": player.str_, "dex_": player.dex_,
-            "int_": player.int_, "char_": player.char_,
-        }
+        stat_snapshot = {k: getattr(player, k) for k in ["hp", "wp", "str_", "dex_", "int_", "char_"]}
         for stat, val in stat_changes.items():
             player.update_stat(stat, val)
 
-        changes_before_after = []
-        for stat in stat_changes:
-            name   = STAT_KO.get(stat, stat)
-            before = stat_snapshot.get(stat, 0)
-            after  = getattr(player, stat, 0)
-            if before != after:
-                changes_before_after.append((name, before, after))
+        changes_before_after = [
+            (STAT_KO.get(s, s), stat_snapshot[s], getattr(player, s))
+            for s in stat_changes if stat_snapshot.get(s, 0) != getattr(player, s, 0)
+        ]
 
-        gm_msg = explain
-        gm_msg += f'<br>{event_dice_html(roll_val, roll_label)}'
+        gm_msg = explain + f'<br>{event_dice_html(roll_val, roll_label)}'
         if changes_before_after:
             gm_msg += stat_change_inline_html(changes_before_after)
         add_message("gm", gm_msg)
@@ -447,11 +420,21 @@ elif st.session_state.phase == "event_before":
 # ── PHASE: event_after ───────────────────────────────
 elif st.session_state.phase == "event_after":
     st.markdown(f'<div class="phase-label">{get_phase_label()}</div>', unsafe_allow_html=True)
-    user_input = st.chat_input("계속하기...")
+
+    # 전투 대기면 행선지, 아니면 다음 이동 방향
+    placeholder = (
+        "예) 조심스럽게 앞으로 나아간다 / 주변을 살핀다..."
+        if not st.session_state.pending_combat
+        else "예) 경계하며 주변을 살핀다..."
+    )
+    user_input = st.chat_input(placeholder)
 
     if user_input:
         player = st.session_state.player
         add_message("player", user_input)
+
+        # ★ 플레이어 의도를 play_log에 반영 → 다음 이벤트/적 생성에 영향
+        st.session_state.play_log += f"\n[플레이어 이동/의도]: {user_input}"
 
         if st.session_state.pending_combat:
             with st.spinner("적을 생성하는 중..."):
@@ -461,10 +444,12 @@ elif st.session_state.phase == "event_after":
             add_message("", enemy_stat_card(enemy), msg_type="stat")
 
             with st.spinner("전투를 시작하는 중..."):
-                combat_intro = call_llm(start_combat_prompt(f"{player.get_stats()}\n{enemy.get_stats()}"))["explain"]
+                combat_intro = call_llm(start_combat_prompt(
+                    f"{player.get_stats()}\n{enemy.get_stats()}"
+                ))["explain"]
             st.session_state.combat_turn = 0
             add_message("gm", combat_intro)
-            st.session_state.phase = "combat"
+            st.session_state.phase = "combat_player"
         else:
             with st.spinner("다음 이벤트를 생성하는 중..."):
                 event_data = call_llm(build_event_prompt_before(st.session_state.play_log))
@@ -475,8 +460,8 @@ elif st.session_state.phase == "event_after":
         st.rerun()
 
 
-# ── PHASE: combat ────────────────────────────────────
-elif st.session_state.phase == "combat":
+# ── PHASE: combat_player ─────────────────────────────
+elif st.session_state.phase == "combat_player":
     st.markdown(f'<div class="phase-label">{get_phase_label()}</div>', unsafe_allow_html=True)
     user_input = st.chat_input("전투 행동을 입력하세요...")
 
@@ -485,8 +470,6 @@ elif st.session_state.phase == "combat":
         enemy  = st.session_state.enemy
         add_message("player", user_input)
         combat_log = ""
-        roll_str = ""
-        enemy_roll_str = ""
 
         with st.spinner("행동을 처리하는 중..."):
             action = call_llm(attack_kind(user_input))
@@ -505,17 +488,18 @@ elif st.session_state.phase == "combat":
             )
         else:
             combat_log += f"[플레이어 강화]\n{player.strength(user_input, action['action']['stat'])}"
+            roll_str = ""
+
+        with st.spinner("행동을 묘사하는 중..."):
+            combat_desc = call_llm(build_combat_prompt(combat_log))["explain"]
+        add_message("gm", f'{combat_desc}<br>{roll_str}')
+        add_message("", combat_state_html(player, enemy), msg_type="stat")
 
         enemy_dead, dead_log = enemy.is_dead()
         if enemy_dead:
-            combat_log += f"\n{dead_log}"
-            with st.spinner("전투 결과를 묘사하는 중..."):
-                combat_desc = call_llm(build_combat_prompt(combat_log))["explain"]
-            add_message("gm", f'{combat_desc}<br>{roll_str}')
             add_message("combat", f"{enemy.name} 쓰러짐 — 전투 승리!")
             st.session_state.play_log += f"\n[전투 승리]\n{combat_log}"
             st.session_state.enemy = None
-
             if st.session_state.timing >= st.session_state.MAX_TURNS:
                 _do_ending()
             else:
@@ -523,6 +507,22 @@ elif st.session_state.phase == "combat":
                 st.session_state.phase = "event_after"
             st.rerun()
             st.stop()
+
+        st.session_state.last_player_combat_log = combat_log
+        st.session_state.phase = "combat_enemy"
+        st.rerun()
+
+
+# ── PHASE: combat_enemy ──────────────────────────────
+elif st.session_state.phase == "combat_enemy":
+    st.markdown(f'<div class="phase-label">{get_phase_label()}</div>', unsafe_allow_html=True)
+    user_input = st.chat_input("적의 턴입니다. 계속하려면 입력하세요...")
+
+    if user_input:
+        player = st.session_state.player
+        enemy  = st.session_state.enemy
+        add_message("player", user_input)
+        combat_log = st.session_state.last_player_combat_log
 
         pattern = random.choice(enemy.special_patterns)
         if pattern["type"]["kind"] == "attack":
@@ -532,17 +532,18 @@ elif st.session_state.phase == "combat":
                 attack_info["dmg"], attack_info["acc"],
                 pattern["type"]["stat"], attack_info["roll"]["roll_result"]
             )
-            combat_log    += f"\n[적 공격]\n{player_dmg_log}"
+            combat_log += f"\n[적 공격]\n{player_dmg_log}"
             enemy_roll_str = combat_dice_html(
                 attack_info["roll"]["roll_result"], attack_info["roll"]["label"],
                 attack_info["roll"]["acc"], attack_info["roll"]["dmgCf"]
             )
         else:
             combat_log += f"\n[적 강화]\n{enemy.strength(pattern)}"
+            enemy_roll_str = ""
 
-        with st.spinner("전투를 묘사하는 중..."):
-            combat_desc = call_llm(build_combat_prompt(combat_log))["explain"]
-        add_message("gm", f'{combat_desc}<br>{roll_str}{enemy_roll_str}')
+        with st.spinner("적이 행동하는 중..."):
+            enemy_desc = call_llm(build_combat_prompt(combat_log))["explain"]
+        add_message("enemy", f'{enemy_desc}<br>{enemy_roll_str}')
         add_message("", combat_state_html(player, enemy), msg_type="stat")
 
         player_dead, dead_log = player.is_dead()
@@ -554,8 +555,10 @@ elif st.session_state.phase == "combat":
             st.rerun()
             st.stop()
 
-        st.session_state.play_log += f"\n[전투]\n{combat_log}"
+        st.session_state.play_log += f"\n[전투 {st.session_state.combat_turn+1}턴]\n{combat_log}"
         st.session_state.combat_turn += 1
+        st.session_state.last_player_combat_log = ""
+        st.session_state.phase = "combat_player"
         st.rerun()
 
 
