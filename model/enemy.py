@@ -10,20 +10,19 @@ class Enemy:
     def __init__(
         self,
         name,               # 적 이름
-        species,            # 종류 or 분류 (예: 괴수, 인간, 악령 등)
+        species,            # 종류
         hp,                 # 체력
         atk,                # 공격력
-        description,        # 설명 텍스트
-        special_patterns,   # 특수 행동 함수 or 설명
+        description,        # 설명
+        special_patterns,   # 특수 행동
     ):
         self.name = name
         self.species = species
         self.hp = hp
         self.atk = atk
         self.description = description
-        self.special_patterns = special_patterns  # 선택적 기능
+        self.special_patterns = special_patterns
 
-    # 적 상태 출력
     def get_stats(self):
         special_action_names = [pattern['name'] for pattern in self.special_patterns]
         return f"""
@@ -35,9 +34,7 @@ class Enemy:
             특수 행동: {special_action_names}
         """
 
-    # 임의 적 능력치 증감
     def update_stat(self, stat_name, value):
-        # [BUG FIX] LLM이 문자열로 반환하는 경우 int 변환 + 상한선 적용
         try:
             value = int(value)
         except (ValueError, TypeError):
@@ -51,7 +48,6 @@ class Enemy:
         else:
             print(f"'{stat_name}' 은(는) 존재하지 않는 능력치입니다.")
 
-    # 적 능력치 강화
     def strength(self, pattern):
         stat_ko = STAT_KO.get(pattern['type']['stat'], pattern['type']['stat'])
         log = f"{self.name}이(가) {pattern['name']}을(를) 시전합니다.\n"
@@ -59,10 +55,9 @@ class Enemy:
         self.update_stat(pattern['type']["stat"], pattern["cf"])
         return log
 
-    # 적 공격
     def attack(self, pattern):
-        # [BUG FIX] 적 주사위 +3 고정 보정 제거 → 공평한 주사위
-        roll = get_outcome_label(roll_dice())  # 주사위 굴림 결과
+        # [BUG FIX] +3 고정 보정 제거
+        roll = get_outcome_label(roll_dice())
         acc = roll["acc"]
         dmg = int(self.atk * pattern["cf"] * roll["dmgCf"])
         return {
@@ -73,7 +68,6 @@ class Enemy:
             "dmg": dmg,
         }
 
-    # 데미지 적용
     def apply_damage(self, player, text, dmg, acc, roll_result):
         roll = randint(1, 100)
         log = ""
@@ -86,7 +80,7 @@ class Enemy:
             log += "공격이 빗나갔습니다."
         return log
 
-    def is_dead(self):  # 적 사망 여부 확인
+    def is_dead(self):
         if self.hp <= 0:
             state, log = True, f"{self.name}이(가) 쓰러졌습니다.\n"
         else:

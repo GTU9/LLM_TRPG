@@ -8,7 +8,7 @@ STAT_KO = {
     'int_': '지능', 'char_': '화술'
 }
 
-class Player:           # 플레이어 state
+class Player:
     def __init__(self,
                  name,      # 플레이어 이름
                  explain,   # 플레이어 설명
@@ -19,7 +19,7 @@ class Player:           # 플레이어 state
                  dex_,      # 플레이어 민첩성
                  int_,      # 플레이어 지능
                  char_,     # 플레이어 화술
-                 # inventory: dict  # 플레이어 인벤토리, 아이템 이름과 설명으로 이루어진 딕셔너리 목록
+                 # inventory: dict
                  ):
         self.name = name
         self.explain = explain
@@ -30,9 +30,8 @@ class Player:           # 플레이어 state
         self.dex_ = dex_
         self.int_ = int_
         self.char_ = char_
-        # self.inventory = inventory  # 플레이어 인벤토리
 
-    def get_stats(self):  # 플레이어 능력치 반환
+    def get_stats(self):
         return f"""
             이름: {self.name}
             설명: {self.explain}
@@ -45,9 +44,7 @@ class Player:           # 플레이어 state
             화술: {self.char_}
         """
 
-    # 임의 플레이어 능력치 증감
     def update_stat(self, stat_name, value):
-        # [BUG FIX] LLM이 문자열로 반환하는 경우 int 변환
         try:
             value = int(value)
         except (ValueError, TypeError):
@@ -69,18 +66,14 @@ class Player:           # 플레이어 state
         else:
             print(f"'{stat_name}' 은(는) 존재하지 않는 능력치입니다.")
 
-    def get_one_state(self, type):  # 플레이어 해당 능력치 반환
+    def get_one_state(self, type):
         stat_map = {
-            'hp': self.hp,
-            'wp': self.wp,
-            'str_': self.str_,
-            'dex_': self.dex_,
-            'int_': self.int_,
-            'char_': self.char_
+            'hp': self.hp, 'wp': self.wp,
+            'str_': self.str_, 'dex_': self.dex_,
+            'int_': self.int_, 'char_': self.char_
         }
         return stat_map.get(type, 0)
 
-    # 플레이어 능력치 보정치 반환
     def get_bonus(self, type):
         if type == 'str_':
             return self.str_ - 2
@@ -93,15 +86,13 @@ class Player:           # 플레이어 state
         else:
             return 0
 
-    # 플레이어 이벤트 결과
-    def event_result(self, text, type, num):  # 이벤트 결과 설명과, 증감된 능력치, 수치
+    def event_result(self, text, type, num):
         stat_ko = STAT_KO.get(type, type)
         log = f"{self.name}이(가) {stat_ko}을(를) {num} 만큼 증감합니다.\n"
         self.update_stat(type, num)
         return log
 
-    # 플레이어 전투 중 강화
-    def strength(self, text, type):  # 캐릭터를 강화한다.
+    def strength(self, text, type):
         roll = get_outcome_label(roll_dice())
         stat_ko = STAT_KO.get(type, type)
         log = ""
@@ -118,8 +109,7 @@ class Player:           # 플레이어 state
                 self.update_stat(type, roll['strength'])
         return log
 
-    # 플레이어 공격
-    def attack(self, text, type):  # LLM이 공격을 설명하는 문자열과 적 정보, 주사위 굴림 결과를 받음
+    def attack(self, text, type):
         roll = get_outcome_label(roll_dice() + self.get_bonus(type))
         acc = roll['acc']
         dmg = int(self.get_one_state(type) * 2 * roll['dmgCf'])
@@ -131,7 +121,6 @@ class Player:           # 플레이어 state
             "roll": roll
         }
 
-    # 플레이어 피해 적용
     def apply_damage(self, enemy, text, dmg, acc, type, roll_result):
         stat_ko = STAT_KO.get(type, type)
         log = ""
@@ -151,7 +140,7 @@ class Player:           # 플레이어 state
             log += "공격이 빗나갔습니다.\n"
         return log
 
-    def is_dead(self):  # 플레이어 사망 체크
+    def is_dead(self):
         if self.hp <= 0:
             state, log = True, f"{self.name}이(가) 체력이 0이 되어 쓰러졌습니다."
         elif self.wp <= 0:

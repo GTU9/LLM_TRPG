@@ -14,9 +14,7 @@ def combat(player, enemy):
     print("\n===== 적의 능력치 =====")
     play_log += print_and_log(enemy.get_stats())
     print("===========================\n")
-    play_log += print_and_log(
-        f"{player.name}이(가) {enemy.name}과(와) 전투를 시작합니다.\n"
-    )
+    play_log += print_and_log(f"{player.name}이(가) {enemy.name}과(와) 전투를 시작합니다.\n")
 
     while True:
         turn += 1
@@ -33,7 +31,7 @@ def combat(player, enemy):
         print(build_combat(player_log)["explain"] + "\n")
         print("=========================================\n")
 
-        # enemy_log 먼저 초기화한 뒤 적 사망 체크
+        # [BUG FIX] enemy_log 먼저 초기화 후 사망 체크
         enemy_log = ""
         enemy_dead, dead_log = enemy.is_dead()
         if enemy_dead:
@@ -45,7 +43,6 @@ def combat(player, enemy):
             break
 
         final_log += player_log
-
         time.sleep(5)
 
         # ── 적 턴 ────────────────────────────────────
@@ -68,7 +65,6 @@ def combat(player, enemy):
         final_log += enemy_log
 
     final_log += play_log
-
     print("\n===== 플레이어의 능력치 =====")
     final_log += print_and_log(player.get_stats())
     print("===========================\n")
@@ -92,27 +88,20 @@ def show_state(player, enemy):
 def player_combat(player, enemy):
     log = ""
     log += f"{player.name}이(가) 행동합니다." + "\n"
-
     user_input = input("플레이어의 행동을 입력하세요: ")
     action = call_llm(attack_kind(user_input))
     print("주사위를 굴립니다...........")
-    # 플레이어 공격
+
     if action["action"]["type"] == "attack":
         log += f"{player.name}이(가) {enemy.name}을(를) 공격합니다.\n"
         attack_info = player.attack(user_input, action["action"]["stat"])
-        # 적에게 피해 적용
         log += (
             enemy.apply_damage(
-                player.name,
-                user_input,
-                attack_info["dmg"],
-                attack_info["acc"],
+                player.name, user_input,
+                attack_info["dmg"], attack_info["acc"],
                 attack_info["roll"]["roll_result"],
-            )
-            + "\n"
+            ) + "\n"
         )
-
-    # 플레이어 강화
     elif action["action"]["type"] == "strength":
         log += f"{player.name} 이(가) 자신을(를) 강화(회복)합니다.\n"
         log += player.strength(user_input, action["action"]["stat"]) + "\n"
@@ -126,25 +115,17 @@ def enemy_combat(player, enemy):
     log += f"{enemy.name}이(가) 행동합니다." + "\n"
     pattern = random.choice(enemy.special_patterns)
 
-    # 적 공격
     if pattern["type"]["kind"] == "attack":
         print("주사위를 굴립니다...........")
         log += f"{enemy.name}이(가) {player.name}을(를) 공격합니다.\n"
         attack_info = enemy.attack(pattern)
-        # 플레이어에게 피해 적용
         log += (
             player.apply_damage(
-                enemy.name,
-                pattern["name"] + " 을 시전합니다.",
-                attack_info["dmg"],
-                attack_info["acc"],
-                pattern["type"]["stat"],
-                attack_info["roll"]["roll_result"],
-            )
-            + "\n"
+                enemy.name, pattern["name"] + " 을 시전합니다.",
+                attack_info["dmg"], attack_info["acc"],
+                pattern["type"]["stat"], attack_info["roll"]["roll_result"],
+            ) + "\n"
         )
-
-    # 적 강화
     elif pattern["type"]["kind"] == "strength":
         log += f"{enemy.name} 이(가) 자신을(를) 강화(회복)합니다.\n"
         log += enemy.strength(pattern) + "\n"
