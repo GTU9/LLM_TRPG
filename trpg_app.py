@@ -60,6 +60,7 @@ st.markdown("""
 .turn-badge { font-size: 11px; color: #8a7a60; }
 .turn-badge span { color: #e8d5a3; font-weight: 500; }
 .gm-bubble { background: #211c14; border: 1px solid #3a2e22; border-radius: 12px; border-top-left-radius: 2px; padding: 12px 16px; color: #d4c4a0; font-family: 'Noto Serif KR', serif; font-size: 14px; line-height: 1.8; }
+.gm-prompt-bubble { background: #1a1a10; border: 1px solid #c9a84c55; border-radius: 12px; border-top-left-radius: 2px; padding: 10px 16px; color: #c9a84c; font-family: 'Noto Serif KR', serif; font-size: 13px; line-height: 1.7; font-style: italic; }
 .enemy-bubble { background: #1e1010; border: 1px solid #6a2020; border-radius: 12px; border-top-left-radius: 2px; padding: 12px 16px; color: #d4a0a0; font-family: 'Noto Serif KR', serif; font-size: 14px; line-height: 1.8; }
 .player-bubble { background: #1a2535; border: 1px solid #2a3a4a; border-radius: 12px; border-top-right-radius: 2px; padding: 10px 14px; color: #a8c8e0; font-size: 13px; line-height: 1.7; }
 .system-msg { background: #1a1a10; border: 1px solid #2a2a18; border-radius: 6px; padding: 8px 14px; color: #8a8a60; font-size: 12px; font-style: italic; text-align: center; margin: 6px 0; }
@@ -101,6 +102,7 @@ def init_session():
         "combat_turn": 0,
         "pending_combat": False,
         "last_player_combat_log": "",
+        "auto_proceed": False,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -127,7 +129,7 @@ def get_phase_label():
         "event_before":  f"이벤트 [{t}/{m}턴] — 행동을 입력하세요",
         "event_after":   f"이벤트 [{t}/{m}턴] — 다음 행선지나 행동 방향을 입력하세요",
         "combat_player": f"전투 [{t}/{m}턴] — 나의 턴 — 행동을 입력하세요",
-        "combat_enemy":  f"전투 [{t}/{m}턴] — 적의 턴 — 계속하려면 입력하세요",
+        "combat_enemy":  f"전투 [{t}/{m}턴] — 적의 턴 진행 중...",
         "ending":        "여정이 끝났습니다",
     }
     return labels.get(p, "")
@@ -199,6 +201,84 @@ def _do_ending():
     st.session_state.play_log += f"\n[엔딩]\n{title}\n{summary}"
     save_log(st.session_state.play_log)
     st.session_state.phase = "ending"
+
+
+# ── 자동 진행 처리 함수 ───────────────────────────────
+def process_event_after():
+    player = st.session_state.player
+    if st.session_state.pending_combat:
+        with st.spinner("적을 생성하는 중..."):
+            enemy = create_enemy(st.session_state.play_log)
+        st.session_state.enemy = enemy
+        add_message("combat", f"적이 등장했습니다 — {enemy.name}")
+        add_message("", enemy_stat_card(enemy), msg_type="stat")
+        with st.spinner("전투를 시작하는 중..."):
+            combat_intro = call_llm(start_combat_prompt(
+                f"{player.get_stats()}\n{enemy.get_stats()}"
+            ))["explain"]
+        st.session_state.combat_turn = 0
+        add_message("gm", combat_intro)
+        st.session_state.phase = "combat_player"
+    else:
+        with st.spinner("다음 이벤트를 생성하는 중..."):
+            event_data = call_llm(build_event_prompt_before(st.session_state.play_log))
+        st.session_state.event_explain = event_data["event"]["explain"]
+        add_message("gm", st.session_state.event_explain)
+        st.session_state.phase = "event_before"
+    st.session_state.auto_proceed = False
+
+
+def process_combat_enemy():
+    player     = st.session_state.player
+    enemy      = st.session_state.enemy
+    combat_log = st.session_state.last_player_combat_log
+    enemy_roll_str = ""
+
+    pattern = random.choice(enemy.special_patterns)
+    if pattern["type"]["kind"] == "attack":
+        attack_info    = enemy.attack(pattern)
+        player_dmg_log = player.apply_damage(
+            enemy.name, pattern["name"],
+            attack_info["dmg"], attack_info["acc"],
+            pattern["type"]["stat"], attack_info["roll"]["roll_result"]
+        )
+        combat_log    += f"\n[적 공격]\n{player_dmg_log}"
+        enemy_roll_str = combat_dice_html(
+            attack_info["roll"]["roll_result"], attack_info["roll"]["label"],
+            attack_info["roll"]["acc"], attack_info["roll"]["dmgCf"]
+        )
+    else:
+        combat_log += f"\n[적 강화]\n{enemy.strength(pattern)}"
+
+    with st.spinner("적이 행동하는 중..."):
+        enemy_desc = call_llm(build_combat_prompt(combat_log))["explain"]
+    add_message("enemy", f'{enemy_desc}<br>{enemy_roll_str}')
+    add_message("", combat_state_html(player, enemy), msg_type="stat")
+
+    player_dead, dead_log = player.is_dead()
+    if player_dead:
+        add_message("system", f"— {dead_log} —")
+        add_message("system", "— 게임 오버 —")
+        st.session_state.play_log += f"\n[전투 패배]\n{combat_log}"
+        _do_ending()
+        st.session_state.auto_proceed = False
+        return
+
+    st.session_state.play_log += f"\n[전투 {st.session_state.combat_turn+1}턴]\n{combat_log}"
+    st.session_state.combat_turn += 1
+    st.session_state.last_player_combat_log = ""
+    st.session_state.phase = "combat_player"
+    st.session_state.auto_proceed = False
+
+
+# ── 자동 진행 실행 ────────────────────────────────────
+if st.session_state.auto_proceed:
+    if st.session_state.phase == "event_after":
+        process_event_after()
+        st.rerun()
+    elif st.session_state.phase == "combat_enemy":
+        process_combat_enemy()
+        st.rerun()
 
 
 # ── 사이드바 ─────────────────────────────────────────
@@ -307,6 +387,10 @@ for msg in st.session_state.messages:
         st.markdown(msg["content"], unsafe_allow_html=True)
     elif msg["type"] == "combat":
         st.markdown(f'<div class="combat-banner">⚔ {msg["content"]}</div>', unsafe_allow_html=True)
+    elif msg["type"] == "prompt":
+        # 유도 멘트 — 황금색 이탤릭 말풍선
+        with st.chat_message("assistant", avatar="⚔"):
+            st.markdown(f'<div class="gm-prompt-bubble">{msg["content"]}</div>', unsafe_allow_html=True)
     elif msg["role"] == "gm":
         with st.chat_message("assistant", avatar="⚔"):
             st.markdown(f'<div class="gm-bubble">{msg["content"]}</div>', unsafe_allow_html=True)
@@ -329,10 +413,8 @@ if st.session_state.phase == "init":
     if submitted and bg and ch:
         with st.spinner("세계관과 캐릭터를 생성하는 중..."):
             background, player = start_game(bg, ch)
-
         st.session_state.player = player
         st.session_state.play_log = f"세계관: {background}\n플레이어 정보: {player.get_stats()}"
-
         add_message("system", "⚔ 세계관이 생성되었습니다")
         add_message("gm", background)
         add_message("system", "캐릭터가 생성되었습니다")
@@ -351,7 +433,6 @@ if st.session_state.phase == "init":
 elif st.session_state.phase == "intro":
     st.markdown(f'<div class="phase-label">{get_phase_label()}</div>', unsafe_allow_html=True)
     user_input = st.chat_input("모험을 시작하려면 아무 말이나 입력하세요...")
-
     if user_input:
         add_message("player", user_input)
         with st.spinner("첫 번째 이벤트를 생성하는 중..."):
@@ -373,10 +454,14 @@ elif st.session_state.phase == "event_before":
         roll_val, roll_label = roll["roll_result"], roll["label"]
 
         with st.spinner("결과를 처리하는 중..."):
-            event_result = call_llm(build_event_prompt_after(st.session_state.event_explain, user_input, roll_label))
+            event_result = call_llm(build_event_prompt_after(
+                st.session_state.event_explain, user_input, roll_label
+            ))
 
         explain      = event_result["event"]["explain"]
         stat_changes = event_result["event"].get("type", {})
+        # ★ 로그 기반 유도 멘트
+        gm_prompt    = event_result["event"].get("prompt", "")
         player       = st.session_state.player
 
         stat_snapshot = {k: getattr(player, k) for k in ["hp", "wp", "str_", "dex_", "int_", "char_"]}
@@ -388,10 +473,15 @@ elif st.session_state.phase == "event_before":
             for s in stat_changes if stat_snapshot.get(s, 0) != getattr(player, s, 0)
         ]
 
+        # 이벤트 결과 말풍선
         gm_msg = explain + f'<br>{event_dice_html(roll_val, roll_label)}'
         if changes_before_after:
             gm_msg += stat_change_inline_html(changes_before_after)
         add_message("gm", gm_msg)
+
+        # ★ 유도 멘트 별도 말풍선 (황금색 이탤릭)
+        if gm_prompt:
+            add_message("", gm_prompt, msg_type="prompt")
 
         st.session_state.play_log += f"\n[이벤트]\n{st.session_state.event_explain}\n[플레이어]: {user_input}\n[결과]: {explain}"
         st.session_state.timing += 1
@@ -420,43 +510,17 @@ elif st.session_state.phase == "event_before":
 # ── PHASE: event_after ───────────────────────────────
 elif st.session_state.phase == "event_after":
     st.markdown(f'<div class="phase-label">{get_phase_label()}</div>', unsafe_allow_html=True)
-
-    # 전투 대기면 행선지, 아니면 다음 이동 방향
     placeholder = (
-        "예) 조심스럽게 앞으로 나아간다 / 주변을 살핀다..."
-        if not st.session_state.pending_combat
-        else "예) 경계하며 주변을 살핀다..."
+        "예) 경계하며 주변을 살핀다..."
+        if st.session_state.pending_combat
+        else "예) 북쪽 창고로 향한다 / 주변을 탐색한다..."
     )
     user_input = st.chat_input(placeholder)
 
     if user_input:
-        player = st.session_state.player
         add_message("player", user_input)
-
-        # ★ 플레이어 의도를 play_log에 반영 → 다음 이벤트/적 생성에 영향
         st.session_state.play_log += f"\n[플레이어 이동/의도]: {user_input}"
-
-        if st.session_state.pending_combat:
-            with st.spinner("적을 생성하는 중..."):
-                enemy = create_enemy(st.session_state.play_log)
-            st.session_state.enemy = enemy
-            add_message("combat", f"적이 등장했습니다 — {enemy.name}")
-            add_message("", enemy_stat_card(enemy), msg_type="stat")
-
-            with st.spinner("전투를 시작하는 중..."):
-                combat_intro = call_llm(start_combat_prompt(
-                    f"{player.get_stats()}\n{enemy.get_stats()}"
-                ))["explain"]
-            st.session_state.combat_turn = 0
-            add_message("gm", combat_intro)
-            st.session_state.phase = "combat_player"
-        else:
-            with st.spinner("다음 이벤트를 생성하는 중..."):
-                event_data = call_llm(build_event_prompt_before(st.session_state.play_log))
-            st.session_state.event_explain = event_data["event"]["explain"]
-            add_message("gm", st.session_state.event_explain)
-            st.session_state.phase = "event_before"
-
+        st.session_state.auto_proceed = True
         st.rerun()
 
 
@@ -510,56 +574,15 @@ elif st.session_state.phase == "combat_player":
 
         st.session_state.last_player_combat_log = combat_log
         st.session_state.phase = "combat_enemy"
+        st.session_state.auto_proceed = True
         st.rerun()
 
 
-# ── PHASE: combat_enemy ──────────────────────────────
+# ── PHASE: combat_enemy (자동 처리) ──────────────────
 elif st.session_state.phase == "combat_enemy":
     st.markdown(f'<div class="phase-label">{get_phase_label()}</div>', unsafe_allow_html=True)
-    user_input = st.chat_input("적의 턴입니다. 계속하려면 입력하세요...")
-
-    if user_input:
-        player = st.session_state.player
-        enemy  = st.session_state.enemy
-        add_message("player", user_input)
-        combat_log = st.session_state.last_player_combat_log
-
-        pattern = random.choice(enemy.special_patterns)
-        if pattern["type"]["kind"] == "attack":
-            attack_info    = enemy.attack(pattern)
-            player_dmg_log = player.apply_damage(
-                enemy.name, pattern["name"],
-                attack_info["dmg"], attack_info["acc"],
-                pattern["type"]["stat"], attack_info["roll"]["roll_result"]
-            )
-            combat_log += f"\n[적 공격]\n{player_dmg_log}"
-            enemy_roll_str = combat_dice_html(
-                attack_info["roll"]["roll_result"], attack_info["roll"]["label"],
-                attack_info["roll"]["acc"], attack_info["roll"]["dmgCf"]
-            )
-        else:
-            combat_log += f"\n[적 강화]\n{enemy.strength(pattern)}"
-            enemy_roll_str = ""
-
-        with st.spinner("적이 행동하는 중..."):
-            enemy_desc = call_llm(build_combat_prompt(combat_log))["explain"]
-        add_message("enemy", f'{enemy_desc}<br>{enemy_roll_str}')
-        add_message("", combat_state_html(player, enemy), msg_type="stat")
-
-        player_dead, dead_log = player.is_dead()
-        if player_dead:
-            add_message("system", f"— {dead_log} —")
-            add_message("system", "— 게임 오버 —")
-            st.session_state.play_log += f"\n[전투 패배]\n{combat_log}"
-            _do_ending()
-            st.rerun()
-            st.stop()
-
-        st.session_state.play_log += f"\n[전투 {st.session_state.combat_turn+1}턴]\n{combat_log}"
-        st.session_state.combat_turn += 1
-        st.session_state.last_player_combat_log = ""
-        st.session_state.phase = "combat_player"
-        st.rerun()
+    if not st.session_state.auto_proceed:
+        st.markdown('<div class="system-msg">적이 행동을 준비하고 있습니다...</div>', unsafe_allow_html=True)
 
 
 # ── PHASE: ending ────────────────────────────────────
