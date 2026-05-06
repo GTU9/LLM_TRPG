@@ -134,19 +134,22 @@ def get_phase_label():
     }
     return labels.get(p, "")
 
-def event_dice_html(roll_val, roll_label):
-    if roll_label == "대성공":
-        color, desc = "#4a9a6a", "행운이 깃든 최상의 결과"
-    elif roll_label == "대실패":
+def event_dice_html(roll_val, roll_label, roll_grade=None):
+    grade = roll_grade or roll_label
+    if grade == "대실패" or grade == "대실패":
         color, desc = "#c0392b", "최악의 상황이 펼쳐진다"
-    elif int(roll_val) >= 10:
+    elif grade == "완벽한 성공" or grade == "대성공":
+        color, desc = "#4a9a6a", "행운이 깃든 최상의 결과"
+    elif grade == "대성공":
         color, desc = "#4a9a6a", "훌륭한 판정"
-    elif int(roll_val) >= 7:
-        color, desc = "#c9a84c", "무난한 판정"
-    elif int(roll_val) >= 4:
+    elif grade == "성공":
+        color, desc = "#4a9a6a", "훌륭한 판정"
+    elif grade == "보통":
         color, desc = "#c9a84c", "아슬아슬한 판정"
-    else:
+    elif grade == "실패":
         color, desc = "#c0392b", "좋지 않은 판정"
+    else:
+        color, desc = "#c9a84c", "무난한 판정"
     return (
         f'<div class="dice-block"><div class="dice-val">{roll_val}</div>'
         f'<div><div class="dice-label" style="color:{color};">{roll_label}</div>'
@@ -182,13 +185,27 @@ def enemy_stat_card(enemy):
         f'설명: {enemy.description}<br>특수 행동: {patterns}</div>'
     )
 
-def combat_state_html(player, enemy):
+def combat_state_html(player, enemy, p_snap=None, e_snap=None):
+    """p_snap, e_snap: 턴 전 스냅샷 {hp, wp} — 있으면 변화량 표시"""
+    def diff_str(cur, prev, label, color_up, color_down):
+        if prev is None:
+            return f'{label} {cur}'
+        d = cur - prev
+        if d == 0:
+            return f'{label} {cur}'
+        color = color_up if d > 0 else color_down
+        sign  = '+' if d > 0 else ''
+        return f'{label} {cur} <span style="color:{color};font-size:11px;">({sign}{d})</span>'
+
+    p_hp = diff_str(player.hp, p_snap.get('hp') if p_snap else None, '❤', '#4a9a6a', '#c0392b')
+    p_wp = diff_str(player.wp, p_snap.get('wp') if p_snap else None, '💙', '#4a9a6a', '#c0392b')
+    e_hp = diff_str(enemy.hp,  e_snap.get('hp') if e_snap else None, '❤', '#4a9a6a', '#c0392b')
+
     return (
         f'<div class="combat-state">'
-        f'<div class="combat-state-player"><b>{player.name}</b><br>'
-        f'❤ {player.hp} &nbsp;|&nbsp; 💙 {player.wp}</div>'
-        f'<div class="combat-state-enemy"><b>{enemy.name}</b><br>'
-        f'❤ 체력 {enemy.hp}</div></div>'
+        f'<div class="combat-state-player"><b>{player.name}</b><br>{p_hp} &nbsp;|&nbsp; {p_wp}</div>'
+        f'<div class="combat-state-enemy"><b>{enemy.name}</b><br>{e_hp}</div>'
+        f'</div>'
     )
 
 def _do_ending():
@@ -234,6 +251,10 @@ def process_combat_enemy():
     combat_log = st.session_state.last_player_combat_log
     enemy_roll_str = ""
 
+    # 적 턴 전 스냅샷
+    p_snap = {'hp': player.hp, 'wp': player.wp}
+    e_snap = {'hp': enemy.hp}
+
     pattern = random.choice(enemy.special_patterns)
     if pattern["type"]["kind"] == "attack":
         attack_info    = enemy.attack(pattern)
@@ -253,7 +274,7 @@ def process_combat_enemy():
     with st.spinner("적이 행동하는 중..."):
         enemy_desc = call_llm(build_combat_prompt(combat_log))["explain"]
     add_message("enemy", f'{enemy_desc}<br>{enemy_roll_str}')
-    add_message("", combat_state_html(player, enemy), msg_type="stat")
+    add_message("", combat_state_html(player, enemy, p_snap=p_snap, e_snap=e_snap), msg_type="stat")
 
     player_dead, dead_log = player.is_dead()
     if player_dead:
@@ -272,13 +293,7 @@ def process_combat_enemy():
 
 
 # ── 자동 진행 실행 ────────────────────────────────────
-if st.session_state.auto_proceed:
-    if st.session_state.phase == "event_after":
-        process_event_after()
-        st.rerun()
-    elif st.session_state.phase == "combat_enemy":
-        process_combat_enemy()
-        st.rerun()
+# 메시지 렌더링 이후에 실행되어야 하므로 아래로 이동
 
 
 # ── 사이드바 ─────────────────────────────────────────
@@ -402,6 +417,16 @@ for msg in st.session_state.messages:
             st.markdown(f'<div class="player-bubble">{msg["content"]}</div>', unsafe_allow_html=True)
 
 
+# ── 자동 진행 실행 (메시지 렌더링 이후) ──────────────────
+if st.session_state.auto_proceed:
+    if st.session_state.phase == "event_after":
+        process_event_after()
+        st.rerun()
+    elif st.session_state.phase == "combat_enemy":
+        process_combat_enemy()
+        st.rerun()
+
+
 # ── PHASE: init ──────────────────────────────────────
 if st.session_state.phase == "init":
     st.markdown(f'<div class="phase-label">{get_phase_label()}</div>', unsafe_allow_html=True)
@@ -435,6 +460,8 @@ elif st.session_state.phase == "intro":
     user_input = st.chat_input("모험을 시작하려면 아무 말이나 입력하세요...")
     if user_input:
         add_message("player", user_input)
+        # 플레이어 첫 의도를 play_log에 반영
+        st.session_state.play_log += f"\n[플레이어 이동/의도]: {user_input}"
         with st.spinner("첫 번째 이벤트를 생성하는 중..."):
             event_data = call_llm(build_event_prompt_before(st.session_state.play_log))
         st.session_state.event_explain = event_data["event"]["explain"]
@@ -476,7 +503,7 @@ elif st.session_state.phase == "event_before":
         ]
 
         # 이벤트 결과 말풍선
-        gm_msg = explain + f'<br>{event_dice_html(roll_val, roll_label)}'
+        gm_msg = explain + f'<br>{event_dice_html(roll_val, roll_label, roll["grade"])}'
         if changes_before_after:
             gm_msg += stat_change_inline_html(changes_before_after)
         add_message("gm", gm_msg)
@@ -537,6 +564,10 @@ elif st.session_state.phase == "combat_player":
         add_message("player", user_input)
         combat_log = ""
 
+        # 공격 전 스냅샷
+        p_snap = {'hp': player.hp, 'wp': player.wp}
+        e_snap = {'hp': enemy.hp}
+
         with st.spinner("행동을 처리하는 중..."):
             action = call_llm(attack_kind(user_input))
 
@@ -556,10 +587,13 @@ elif st.session_state.phase == "combat_player":
             combat_log += f"[플레이어 강화]\n{player.strength(user_input, action['action']['stat'])}"
             roll_str = ""
 
+        # 플레이어 턴 스냅샷 (적용 후 적 체력)
+        e_snap_after = {'hp': enemy.hp}
+
         with st.spinner("행동을 묘사하는 중..."):
             combat_desc = call_llm(build_combat_prompt(combat_log))["explain"]
         add_message("gm", f'{combat_desc}<br>{roll_str}')
-        add_message("", combat_state_html(player, enemy), msg_type="stat")
+        add_message("", combat_state_html(player, enemy, p_snap=p_snap, e_snap=e_snap), msg_type="stat")
 
         enemy_dead, dead_log = enemy.is_dead()
         if enemy_dead:
