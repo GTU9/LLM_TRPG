@@ -451,11 +451,13 @@ elif st.session_state.phase == "event_before":
     if user_input:
         add_message("player", user_input)
         roll = get_outcome_label(roll_dice())
-        roll_val, roll_label = roll["roll_result"], roll["label"]
+        roll_val   = roll["roll_result"]
+        roll_label = roll["label"]
+        roll_info  = f"{roll['roll_result']}점 / 등급: {roll['grade']} / 명중률: {roll['acc']}%"
 
         with st.spinner("결과를 처리하는 중..."):
             event_result = call_llm(build_event_prompt_after(
-                st.session_state.event_explain, user_input, roll_label
+                st.session_state.event_explain, user_input, roll_info
             ))
 
         explain      = event_result["event"]["explain"]
