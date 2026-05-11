@@ -2,12 +2,14 @@ import streamlit as st
 import random
 import sys
 import os
+import html as _html
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from system.objec_factory import start_game, create_enemy
 from system.save_log import save_log
 from system.dice import roll_dice, get_outcome_label
+from system.input_sanitize import sanitize_user_input, safe_html, MAX_SETUP_LENGTH
 from llm.call_llm import call_llm
 from llm.event_prompt import build_event_prompt_before, build_event_prompt_after
 from llm.combat_prompt import attack_kind, build_combat_prompt, start_combat_prompt
@@ -97,7 +99,7 @@ def init_session():
         "enemy": None,
         "play_log": "",
         "timing": 0,
-        "MAX_TURNS": 3,
+        "MAX_TURNS": 5,
         "event_explain": "",
         "combat_turn": 0,
         "pending_combat": False,
@@ -178,14 +180,14 @@ def stat_change_inline_html(changes_before_after):
     )
 
 def enemy_stat_card(enemy):
-    patterns = " / ".join([p["name"] for p in enemy.special_patterns])
+    patterns = " / ".join([_html.escape(p["name"]) for p in enemy.special_patterns])
     return (
-        f'<div class="stat-card-enemy"><b>[ 적 정보 — {enemy.name} ]</b><br>'
-        f'종류: {enemy.species} &nbsp;|&nbsp; ❤ 체력 {enemy.hp} &nbsp;|&nbsp; ⚔ 공격력 {enemy.atk}<br>'
-        f'설명: {enemy.description}<br>특수 행동: {patterns}</div>'
+        f'<div class="stat-card-enemy"><b>[ 적 정보 — {_html.escape(enemy.name)} ]</b><br>'
+        f'종류: {_html.escape(enemy.species)} &nbsp;|&nbsp; ❤ 체력 {enemy.hp} &nbsp;|&nbsp; ⚔ 공격력 {enemy.atk}<br>'
+        f'설명: {_html.escape(enemy.description)}<br>특수 행동: {patterns}</div>'
     )
 
-def combat_state_html(player, enemy, p_snap=None, e_snap=None):
+def combat_state_html(player, enemy, p_snap=None, e_snap=None, turn_label=None):
     """p_snap, e_snap: 턴 전 스냅샷 {hp, wp} — 있으면 변화량 표시"""
     def diff_str(cur, prev, label, color_up, color_down):
         if prev is None:
@@ -201,20 +203,29 @@ def combat_state_html(player, enemy, p_snap=None, e_snap=None):
     p_wp = diff_str(player.wp, p_snap.get('wp') if p_snap else None, '💙', '#4a9a6a', '#c0392b')
     e_hp = diff_str(enemy.hp,  e_snap.get('hp') if e_snap else None, '❤', '#4a9a6a', '#c0392b')
 
+    label_html = (
+        f'<div style="font-size:10px;color:#5a4e38;letter-spacing:0.06em;margin-bottom:3px;">{turn_label}</div>'
+        if turn_label else ''
+    )
     return (
+        f'{label_html}'
         f'<div class="combat-state">'
-        f'<div class="combat-state-player"><b>{player.name}</b><br>{p_hp} &nbsp;|&nbsp; {p_wp}</div>'
-        f'<div class="combat-state-enemy"><b>{enemy.name}</b><br>{e_hp}</div>'
+        f'<div class="combat-state-player"><b>{_html.escape(player.name)}</b><br>{p_hp} &nbsp;|&nbsp; {p_wp}</div>'
+        f'<div class="combat-state-enemy"><b>{_html.escape(enemy.name)}</b><br>{e_hp}</div>'
         f'</div>'
     )
 
 def _do_ending():
-    with st.spinner("엔딩을 생성하는 중..."):
-        end = call_llm(build_ending_prompt(st.session_state.play_log))
+    try:
+        with st.spinner("엔딩을 생성하는 중..."):
+            end = call_llm(build_ending_prompt(st.session_state.play_log))
+    except Exception as e:
+        st.error(f"엔딩 생성 중 오류가 발생했습니다. ({type(e).__name__})")
+        st.stop()
     title   = end["ending"]["title"]
     summary = end["ending"]["summary"]
-    add_message("system", f"— {title} —")
-    add_message("gm", summary)
+    add_message("system", f"— {_html.escape(title)} —")
+    add_message("gm", safe_html(summary))
     st.session_state.play_log += f"\n[엔딩]\n{title}\n{summary}"
     save_log(st.session_state.play_log)
     st.session_state.phase = "ending"
@@ -223,25 +234,29 @@ def _do_ending():
 # ── 자동 진행 처리 함수 ───────────────────────────────
 def process_event_after():
     player = st.session_state.player
-    if st.session_state.pending_combat:
-        with st.spinner("적을 생성하는 중..."):
-            enemy = create_enemy(st.session_state.play_log)
-        st.session_state.enemy = enemy
-        add_message("combat", f"적이 등장했습니다 — {enemy.name}")
-        add_message("", enemy_stat_card(enemy), msg_type="stat")
-        with st.spinner("전투를 시작하는 중..."):
-            combat_intro = call_llm(start_combat_prompt(
-                f"{player.get_stats()}\n{enemy.get_stats()}"
-            ))["explain"]
-        st.session_state.combat_turn = 0
-        add_message("gm", combat_intro)
-        st.session_state.phase = "combat_player"
-    else:
-        with st.spinner("다음 이벤트를 생성하는 중..."):
-            event_data = call_llm(build_event_prompt_before(st.session_state.play_log))
-        st.session_state.event_explain = event_data["event"]["explain"]
-        add_message("gm", st.session_state.event_explain)
-        st.session_state.phase = "event_before"
+    try:
+        if st.session_state.pending_combat:
+            with st.spinner("적을 생성하는 중..."):
+                enemy = create_enemy(st.session_state.play_log)
+            st.session_state.enemy = enemy
+            add_message("combat", f"적이 등장했습니다 — {_html.escape(enemy.name)}")
+            add_message("", enemy_stat_card(enemy), msg_type="stat")
+            with st.spinner("전투를 시작하는 중..."):
+                combat_intro = call_llm(start_combat_prompt(
+                    f"{player.get_stats()}\n{enemy.get_stats()}"
+                ))["explain"]
+            st.session_state.combat_turn = 0
+            add_message("gm", safe_html(combat_intro))
+            st.session_state.phase = "combat_player"
+        else:
+            with st.spinner("다음 이벤트를 생성하는 중..."):
+                event_data = call_llm(build_event_prompt_before(st.session_state.play_log))
+            st.session_state.event_explain = event_data["event"]["explain"]
+            add_message("gm", safe_html(st.session_state.event_explain))
+            st.session_state.phase = "event_before"
+    except Exception as e:
+        st.error(f"진행 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요. ({type(e).__name__})")
+        st.stop()
     st.session_state.auto_proceed = False
 
 
@@ -273,12 +288,12 @@ def process_combat_enemy():
 
     with st.spinner("적이 행동하는 중..."):
         enemy_desc = call_llm(build_combat_prompt(combat_log))["explain"]
-    add_message("enemy", f'{enemy_desc}<br>{enemy_roll_str}')
-    add_message("", combat_state_html(player, enemy, p_snap=p_snap, e_snap=e_snap), msg_type="stat")
+    add_message("enemy", f'{_html.escape(enemy_desc)}<br>{enemy_roll_str}')
+    add_message("", combat_state_html(player, enemy, p_snap=p_snap, e_snap=e_snap, turn_label="적 턴 후"), msg_type="stat")
 
     player_dead, dead_log = player.is_dead()
     if player_dead:
-        add_message("system", f"— {dead_log} —")
+        add_message("system", f"— {_html.escape(dead_log)} —")
         add_message("system", "— 게임 오버 —")
         st.session_state.play_log += f"\n[전투 패배]\n{combat_log}"
         _do_ending()
@@ -377,19 +392,23 @@ render_sidebar()
 
 # ── 상단 헤더 ────────────────────────────────────────
 p = st.session_state.player
-hp_val = p.hp if p else 0
-wp_val = p.wp if p else 0
-hp_bar = render_bar(hp_val, 100, "#c0392b")
-wp_bar = render_bar(wp_val, 100, "#2980b9")
+if p is not None:
+    hp_val = p.hp
+    wp_val = p.wp
+    hp_bar = render_bar(hp_val, 100, "#c0392b")
+    wp_bar = render_bar(wp_val, 100, "#2980b9")
+    stats_html = (
+        f'<div class="trpg-header-stat">❤ {hp_bar} <span>{hp_val}</span></div>'
+        f'<div class="trpg-header-stat">💙 {wp_bar} <span>{wp_val}</span></div>'
+        f'<div class="turn-badge">턴 <span>{st.session_state.timing}/{st.session_state.MAX_TURNS}</span></div>'
+    )
+else:
+    stats_html = '<div class="turn-badge" style="color:#5a4e38;">세계관과 캐릭터를 설정하세요</div>'
 
 st.markdown(f"""
 <div class="trpg-header">
     <div class="trpg-title"><span class="trpg-gem"></span> LLM TRPG</div>
-    <div class="trpg-header-stats">
-        <div class="trpg-header-stat">❤ {hp_bar} <span>{hp_val}</span></div>
-        <div class="trpg-header-stat">💙 {wp_bar} <span>{wp_val}</span></div>
-        <div class="turn-badge">턴 <span>{st.session_state.timing}/{st.session_state.MAX_TURNS}</span></div>
-    </div>
+    <div class="trpg-header-stats">{stats_html}</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -436,16 +455,22 @@ if st.session_state.phase == "init":
         submitted = st.form_submit_button("모험 시작", use_container_width=True)
 
     if submitted and bg and ch:
-        with st.spinner("세계관과 캐릭터를 생성하는 중..."):
-            background, player = start_game(bg, ch)
+        bg = sanitize_user_input(bg, MAX_SETUP_LENGTH)
+        ch = sanitize_user_input(ch, MAX_SETUP_LENGTH)
+        try:
+            with st.spinner("세계관과 캐릭터를 생성하는 중..."):
+                background, player = start_game(bg, ch)
+        except Exception as e:
+            st.error(f"게임 시작 중 오류가 발생했습니다. API 키를 확인하거나 잠시 후 다시 시도해 주세요.\n\n({type(e).__name__})")
+            st.stop()
         st.session_state.player = player
         st.session_state.play_log = f"세계관: {background}\n플레이어 정보: {player.get_stats()}"
         add_message("system", "⚔ 세계관이 생성되었습니다")
-        add_message("gm", background)
+        add_message("gm", safe_html(background))
         add_message("system", "캐릭터가 생성되었습니다")
         char_desc = (
-            f"<b>{player.name}</b> — {player.role}<br><br>"
-            f"{player.explain}<br><br>"
+            f"<b>{_html.escape(player.name)}</b> — {_html.escape(player.role)}<br><br>"
+            f"{_html.escape(player.explain)}<br><br>"
             f"❤ 체력 {player.hp} &nbsp;|&nbsp; 💙 정신력 {player.wp}<br>"
             f"힘 {player.str_} &nbsp;|&nbsp; 민첩 {player.dex_} &nbsp;|&nbsp; 지능 {player.int_} &nbsp;|&nbsp; 화술 {player.char_}"
         )
@@ -459,13 +484,14 @@ elif st.session_state.phase == "intro":
     st.markdown(f'<div class="phase-label">{get_phase_label()}</div>', unsafe_allow_html=True)
     user_input = st.chat_input("모험을 시작하려면 아무 말이나 입력하세요...")
     if user_input:
-        add_message("player", user_input)
+        user_input = sanitize_user_input(user_input)
+        add_message("player", safe_html(user_input))
         # 플레이어 첫 의도를 play_log에 반영
         st.session_state.play_log += f"\n[플레이어 이동/의도]: {user_input}"
         with st.spinner("첫 번째 이벤트를 생성하는 중..."):
             event_data = call_llm(build_event_prompt_before(st.session_state.play_log))
         st.session_state.event_explain = event_data["event"]["explain"]
-        add_message("gm", st.session_state.event_explain)
+        add_message("gm", safe_html(st.session_state.event_explain))
         st.session_state.phase = "event_before"
         st.rerun()
 
@@ -476,16 +502,21 @@ elif st.session_state.phase == "event_before":
     user_input = st.chat_input("행동을 입력하세요...")
 
     if user_input:
-        add_message("player", user_input)
+        user_input = sanitize_user_input(user_input)
+        add_message("player", safe_html(user_input))
         roll = get_outcome_label(roll_dice())
         roll_val   = roll["roll_result"]
         roll_label = roll["label"]
         roll_info  = f"{roll['roll_result']}점 / 등급: {roll['grade']} / 명중률: {roll['acc']}%"
 
-        with st.spinner("결과를 처리하는 중..."):
-            event_result = call_llm(build_event_prompt_after(
-                st.session_state.event_explain, user_input, roll_info
-            ))
+        try:
+            with st.spinner("결과를 처리하는 중..."):
+                event_result = call_llm(build_event_prompt_after(
+                    st.session_state.event_explain, user_input, roll_info
+                ))
+        except Exception as e:
+            st.error(f"이벤트 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요. ({type(e).__name__})")
+            st.stop()
 
         explain      = event_result["event"]["explain"]
         stat_changes = event_result["event"].get("type", {})
@@ -503,21 +534,21 @@ elif st.session_state.phase == "event_before":
         ]
 
         # 이벤트 결과 말풍선
-        gm_msg = explain + f'<br>{event_dice_html(roll_val, roll_label, roll["grade"])}'
+        gm_msg = _html.escape(explain) + f'<br>{event_dice_html(roll_val, roll_label, roll["grade"])}'
         if changes_before_after:
             gm_msg += stat_change_inline_html(changes_before_after)
         add_message("gm", gm_msg)
 
         # ★ 유도 멘트 별도 말풍선 (황금색 이탤릭)
         if gm_prompt:
-            add_message("", gm_prompt, msg_type="prompt")
+            add_message("", safe_html(gm_prompt), msg_type="prompt")
 
         st.session_state.play_log += f"\n[이벤트]\n{st.session_state.event_explain}\n[플레이어]: {user_input}\n[결과]: {explain}"
         st.session_state.timing += 1
 
         dead, dead_log = player.is_dead()
         if dead:
-            add_message("system", f"— {dead_log} —")
+            add_message("system", f"— {_html.escape(dead_log)} —")
             add_message("system", "— 게임 오버 —")
             _do_ending()
             st.rerun()
@@ -525,6 +556,7 @@ elif st.session_state.phase == "event_before":
 
         if random.random() < 0.6 and st.session_state.timing <= st.session_state.MAX_TURNS:
             st.session_state.pending_combat = True
+            add_message("combat", "⚠ 적의 기척이 느껴집니다 — 다음 행동을 입력하면 전투가 시작됩니다")
         elif st.session_state.timing >= st.session_state.MAX_TURNS:
             _do_ending()
             st.rerun()
@@ -547,7 +579,8 @@ elif st.session_state.phase == "event_after":
     user_input = st.chat_input(placeholder)
 
     if user_input:
-        add_message("player", user_input)
+        user_input = sanitize_user_input(user_input)
+        add_message("player", safe_html(user_input))
         st.session_state.play_log += f"\n[플레이어 이동/의도]: {user_input}"
         st.session_state.auto_proceed = True
         st.rerun()
@@ -561,15 +594,20 @@ elif st.session_state.phase == "combat_player":
     if user_input:
         player = st.session_state.player
         enemy  = st.session_state.enemy
-        add_message("player", user_input)
+        user_input = sanitize_user_input(user_input)
+        add_message("player", safe_html(user_input))
         combat_log = ""
 
         # 공격 전 스냅샷
         p_snap = {'hp': player.hp, 'wp': player.wp}
         e_snap = {'hp': enemy.hp}
 
-        with st.spinner("행동을 처리하는 중..."):
-            action = call_llm(attack_kind(user_input))
+        try:
+            with st.spinner("행동을 처리하는 중..."):
+                action = call_llm(attack_kind(user_input))
+        except Exception as e:
+            st.error(f"행동 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요. ({type(e).__name__})")
+            st.stop()
 
         if action["action"]["type"] == "attack":
             attack_info = player.attack(user_input, action["action"]["stat"])
@@ -590,14 +628,18 @@ elif st.session_state.phase == "combat_player":
         # 플레이어 턴 스냅샷 (적용 후 적 체력)
         e_snap_after = {'hp': enemy.hp}
 
-        with st.spinner("행동을 묘사하는 중..."):
-            combat_desc = call_llm(build_combat_prompt(combat_log))["explain"]
-        add_message("gm", f'{combat_desc}<br>{roll_str}')
-        add_message("", combat_state_html(player, enemy, p_snap=p_snap, e_snap=e_snap), msg_type="stat")
+        try:
+            with st.spinner("행동을 묘사하는 중..."):
+                combat_desc = call_llm(build_combat_prompt(combat_log))["explain"]
+        except Exception as e:
+            st.error(f"전투 묘사 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요. ({type(e).__name__})")
+            st.stop()
+        add_message("gm", f'{_html.escape(combat_desc)}<br>{roll_str}')
+        add_message("", combat_state_html(player, enemy, p_snap=p_snap, e_snap=e_snap, turn_label="플레이어 턴 후"), msg_type="stat")
 
         enemy_dead, dead_log = enemy.is_dead()
         if enemy_dead:
-            add_message("combat", f"{enemy.name} 쓰러짐 — 전투 승리!")
+            add_message("combat", f"{_html.escape(enemy.name)} 쓰러짐 — 전투 승리!")
             st.session_state.play_log += f"\n[전투 승리]\n{combat_log}"
             st.session_state.enemy = None
             if st.session_state.timing >= st.session_state.MAX_TURNS:
@@ -623,4 +665,9 @@ elif st.session_state.phase == "combat_enemy":
 
 # ── PHASE: ending ────────────────────────────────────
 elif st.session_state.phase == "ending":
-    st.markdown('<div class="system-msg">— 여정이 끝났습니다. 새로운 모험을 시작하려면 새로고침하세요 —</div>', unsafe_allow_html=True)
+    st.markdown('<div class="system-msg">— 여정이 끝났습니다 —</div>', unsafe_allow_html=True)
+    _, col, _ = st.columns([1, 2, 1])
+    with col:
+        if st.button("⚔ 새로운 모험 시작하기", use_container_width=True, type="primary"):
+            st.session_state.clear()
+            st.rerun()

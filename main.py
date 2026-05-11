@@ -1,17 +1,18 @@
 import random
+import time
 from system.objec_factory import start_game, create_enemy
 from system.event import event
 from system.combat import combat
 from system.ending import ending
 from system.save_log import save_log
-import time
+from system.input_sanitize import sanitize_user_input, MAX_SETUP_LENGTH
 
 
 def main():
     print("['내가 만드는 TRPG 게임'에 오신것을 환영합니다.]\n")
     print("[세계관 설정과 내가 쓸 주인공 캐릭터를 설정합니다!]\n")
-    user_input_background = input("세계관(배경 설정)을 입력하세요: ")
-    user_input_character = input("캐릭터 정보를 입력하세요: ")
+    user_input_background = sanitize_user_input(input("세계관(배경 설정)을 입력하세요: "), MAX_SETUP_LENGTH)
+    user_input_character = sanitize_user_input(input("캐릭터 정보를 입력하세요: "), MAX_SETUP_LENGTH)
 
     background, player = start_game(user_input_background, user_input_character)
 

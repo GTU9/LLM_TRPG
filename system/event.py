@@ -1,6 +1,7 @@
 from llm.call_llm import call_llm
 from llm.event_prompt import build_event_prompt_before, build_event_prompt_after
 from system.dice import roll_dice, get_outcome_label
+from system.input_sanitize import sanitize_user_input
 from model.player import STAT_KO
 
 
@@ -26,7 +27,7 @@ def event_before(play_log):
 
 def event_after(player, event_before_log):
     event_log = ""
-    player_act = input("\n플레이어의 행동을 입력하세요: ")
+    player_act = sanitize_user_input(input("\n플레이어의 행동을 입력하세요: "))
     roll = get_outcome_label(roll_dice())
     roll_result = roll["roll_result"]
     roll_label  = roll["label"]

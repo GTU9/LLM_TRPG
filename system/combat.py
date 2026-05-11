@@ -1,6 +1,7 @@
 import random, time
 from llm.call_llm import call_llm
 from llm.combat_prompt import attack_kind, build_combat_prompt, start_combat_prompt
+from system.input_sanitize import sanitize_user_input
 
 
 def combat(player, enemy):
@@ -88,7 +89,7 @@ def show_state(player, enemy):
 def player_combat(player, enemy):
     log = ""
     log += f"{player.name}이(가) 행동합니다." + "\n"
-    user_input = input("플레이어의 행동을 입력하세요: ")
+    user_input = sanitize_user_input(input("플레이어의 행동을 입력하세요: "))
     action = call_llm(attack_kind(user_input))
     print("주사위를 굴립니다...........")
 
