@@ -5,19 +5,21 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: llm-trpg:latest
     container_name: llm-trpg
     restart: unless-stopped
     ports:
-      - "8501:8501"
+      - "${HOST_PORT:-8501}:8501"
     env_file:
-      - .env
+      - .env                  # OPENAI_API_KEY 로드 (이미지에 포함되지 않음)
     volumes:
-      - ./data:/app/data
+      - ./data:/app/data      # 게임 로그 영속 저장
     environment:
       - TZ=Asia/Seoul
+      - STREAMLIT_SERVER_BASE_URL_PATH=${APP_BASE_PATH:-}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      test: ["CMD", "sh", "-c", "curl -f http://localhost:8501/${APP_BASE_PATH:+${APP_BASE_PATH}/}_stcore/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 15s
